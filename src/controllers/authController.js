@@ -55,6 +55,15 @@ class AuthController {
       return exceptionResponse(res, error);
     }
   }
+
+  async socialLogin(req, res) {
+    try {
+      const result = await authService.socialLogin(req.body);
+      return successResponse(res, result, 'Social login successful');
+    } catch (error) {
+      return exceptionResponse(res, error);
+    }
+  }
 }
 
 module.exports = new AuthController();

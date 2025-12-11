@@ -17,9 +17,12 @@ model User {
   id            String    @id @default(uuid())
   name          String
   email         String    @unique
-  password      String
+  password      String?
   isActive      Boolean   @default(true)
   isVerified    Boolean   @default(false)
+  authMethod    String?   @default("EMAIL")
+  socialId      String?
+  fcmToken      String?
   lastLoginAt   DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt

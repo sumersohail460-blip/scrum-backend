@@ -206,6 +206,47 @@ class AuthService {
 
     return { message: 'Password reset successfully' };
   }
+
+  async socialLogin(socialData) {
+    const { firstName, lastName, email, authMethod, socialId, fcmToken } = socialData;
+    
+    let user = await userRepository.findByEmail(email);
+    
+    if (user) {
+      if (user.authMethod && user.authMethod !== authMethod) {
+        throw new Error('Email already linked with another authentication method');
+      }
+      
+      // Update FCM token if provided
+      if (fcmToken) {
+        await userRepository.updateUser(user.id, { fcmToken });
+      }
+    } else {
+      // Create new user
+      user = await userRepository.createUser({
+        name: `${firstName} ${lastName}`,
+        email,
+        authMethod,
+        socialId,
+        fcmToken,
+        isVerified: true // Social login users are auto-verified
+      });
+    }
+
+    // Update last login
+    await userRepository.updateUser(user.id, { lastLoginAt: new Date() });
+
+    const accessToken = await generateUserJwtToken(user);
+    const refreshToken = await generateUserRefreshToken(user);
+
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      access_token: accessToken,
+      refresh_token: refreshToken
+    };
+  }
 }
 
 module.exports = new AuthService();

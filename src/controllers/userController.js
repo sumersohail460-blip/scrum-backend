@@ -24,6 +24,25 @@ class UserController {
       return exceptionResponse(res, error);
     }
   }
+
+  async deleteUser(req, res) {
+    try {
+      const userId = req.params.id;
+      const result = await userService.deleteUser(userId);
+      return successResponse(res, result, result.message);
+    } catch (error) {
+      return exceptionResponse(res, error);
+    }
+  }
+
+  async getAllUsers(req, res) {
+    try {
+      const result = await userService.getAllUsers();
+      return successResponse(res, result, 'Users retrieved successfully');
+    } catch (error) {
+      return exceptionResponse(res, error);
+    }
+  }
 }
 
 module.exports = new UserController();

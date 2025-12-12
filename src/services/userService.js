@@ -26,6 +26,20 @@ class UserService {
         }
       }
       
+      // Also delete any other images for this user (in case of multiple uploads)
+      const imagesDir = path.join(__dirname, '../../uploads/images');
+      if (fs.existsSync(imagesDir)) {
+        const files = fs.readdirSync(imagesDir);
+        files.forEach(file => {
+          if (file.startsWith(userId + '_') && file !== imageFile.filename) {
+            const filePath = path.join(imagesDir, file);
+            if (fs.existsSync(filePath)) {
+              fs.unlinkSync(filePath);
+            }
+          }
+        });
+      }
+      
       // Set new image filename
       updateFields.image = imageFile.filename;
     }
@@ -33,12 +47,16 @@ class UserService {
     // Update user in database
     const updatedUser = await userRepository.updateUser(userId, updateFields);
 
+    // Generate full image URL
+    const baseUrl = process.env.BASE_URL || 'http://localhost:5000';
+    const imageUrl = updatedUser.image ? `${baseUrl}/uploads/images/${updatedUser.image}` : null;
+
     return {
       id: updatedUser.id,
       name: updatedUser.name,
       email: updatedUser.email,
       phone: updatedUser.phone,
-      image: updatedUser.image,
+      image_url: imageUrl,
       message: 'Profile updated successfully'
     };
   }
@@ -49,14 +67,55 @@ class UserService {
       throw new Error('User not found');
     }
 
+    // Generate full image URL
+    const baseUrl = process.env.BASE_URL || 'http://localhost:5000';
+    const imageUrl = user.image ? `${baseUrl}/uploads/images/${user.image}` : null;
+
     return {
       id: user.id,
       name: user.name,
       email: user.email,
       phone: user.phone,
-      image: user.image,
+      image_url: imageUrl,
       createdAt: user.createdAt
     };
+  }
+
+  async deleteUser(userId) {
+    const user = await userRepository.findById(userId);
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    // Delete user image if exists
+    if (user.image) {
+      const imagePath = path.join(__dirname, '../../uploads/images', user.image);
+      if (fs.existsSync(imagePath)) {
+        fs.unlinkSync(imagePath);
+      }
+    }
+
+    // Delete user from database
+    await userRepository.deleteUser(userId);
+
+    return { message: 'User deleted successfully' };
+  }
+
+  async getAllUsers() {
+    const users = await userRepository.findMany({});
+    const baseUrl = process.env.BASE_URL || 'http://localhost:5000';
+
+    return users.map(user => ({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      phone: user.phone,
+      image_url: user.image ? `${baseUrl}/uploads/images/${user.image}` : null,
+      isVerified: user.isVerified,
+      isActive: user.isActive,
+      authMethod: user.authMethod,
+      createdAt: user.createdAt
+    }));
   }
 }
 

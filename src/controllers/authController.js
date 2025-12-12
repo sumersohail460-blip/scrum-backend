@@ -93,6 +93,15 @@ class AuthController {
       return exceptionResponse(res, error);
     }
   }
+
+  async resendOTP(req, res) {
+    try {
+      const result = await authService.resendOTP(req.body);
+      return successResponse(res, result, result.message);
+    } catch (error) {
+      return exceptionResponse(res, error);
+    }
+  }
 }
 
 module.exports = new AuthController();

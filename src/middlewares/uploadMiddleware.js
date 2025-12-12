@@ -15,8 +15,9 @@ const storage = multer.diskStorage({
   filename: (req, file, cb) => {
     // Get file extension
     const ext = path.extname(file.originalname);
-    // Use user ID as filename (will be set after auth middleware)
-    const filename = `${req.user.id}${ext}`;
+    // Use user ID with timestamp to ensure uniqueness
+    const timestamp = Date.now();
+    const filename = `${req.user.id}_${timestamp}${ext}`;
     cb(null, filename);
   }
 });

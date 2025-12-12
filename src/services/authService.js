@@ -350,6 +350,48 @@ class AuthService {
 
     return { message: 'Logged out successfully' };
   }
+
+  async resendOTP(contactData) {
+    const { contact, contactType, type = 'EMAIL_VERIFICATION' } = contactData;
+    const { normalizePhone } = require('../helpers/contactHelper');
+    const TwilioService = require('../utils/sendSmsUtil');
+    
+    const normalizedContact = contactType === 'phone' ? normalizePhone(contact) : contact;
+    const user = await userRepository.findByEmailOrPhone(normalizedContact);
+    
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    if (type === 'EMAIL_VERIFICATION' && user.isVerified) {
+      throw new Error('User is already verified');
+    }
+
+    const otp = generateOTP();
+    const expiresAt = createExpiryTime(10);
+
+    await otpRepository.create({
+      userId: user.id,
+      code: otp,
+      type,
+      expiresAt
+    });
+
+    // Send OTP via email or SMS
+    if (user.email) {
+      const subject = type === 'PASSWORD_RESET' ? 'Password Reset - OTP' : 'Email Verification - OTP';
+      await sendEmail(
+        user.email,
+        subject,
+        emailTemplates.otpEmailTemplate(otp, user.name)
+      );
+    } else if (user.phone) {
+      await TwilioService.sendOTPSMS(user.phone, otp);
+    }
+
+    const contactMethod = user.email ? 'email' : 'phone';
+    return { message: `OTP resent to your ${contactMethod}` };
+  }
 }
 
 module.exports = new AuthService();

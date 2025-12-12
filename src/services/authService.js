@@ -247,6 +247,27 @@ class AuthService {
       refresh_token: refreshToken
     };
   }
+
+  async updatePassword(userId, currentPassword, newPassword) {
+    const user = await userRepository.findById(userId);
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    if (!user.password) {
+      throw new Error('Cannot update password for social login users');
+    }
+
+    const isCurrentPasswordValid = await comparePassword(currentPassword, user.password);
+    if (!isCurrentPasswordValid) {
+      throw new Error('Current password is incorrect');
+    }
+
+    const hashedNewPassword = await hashPassword(newPassword);
+    await userRepository.updatePassword(user.id, hashedNewPassword);
+
+    return { message: 'Password updated successfully' };
+  }
 }
 
 module.exports = new AuthService();

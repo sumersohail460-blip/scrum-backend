@@ -64,6 +64,17 @@ class AuthController {
       return exceptionResponse(res, error);
     }
   }
+
+  async updatePassword(req, res) {
+    try {
+      const { currentPassword, newPassword } = req.body;
+      const userId = req.user.id;
+      const result = await authService.updatePassword(userId, currentPassword, newPassword);
+      return successResponse(res, result, result.message);
+    } catch (error) {
+      return exceptionResponse(res, error);
+    }
+  }
 }
 
 module.exports = new AuthController();

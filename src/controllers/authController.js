@@ -5,7 +5,10 @@ class AuthController {
   async register(req, res) {
     try {
       const result = await authService.register(req.body);
-      return successResponse(res, result, 'Registration successful. Please verify your email.', 201);
+      const message = result.phone ? 
+        'Registration successful. Please verify your phone.' : 
+        'Registration successful. Please verify your email.';
+      return successResponse(res, result, message, 201);
     } catch (error) {
       return exceptionResponse(res, error);
     }
@@ -27,8 +30,8 @@ class AuthController {
 
   async forgotPassword(req, res) {
     try {
-      const result = await authService.forgotPassword(req.body.email);
-      return successResponse(res, result, 'OTP sent to your email');
+      const result = await authService.forgotPassword(req.body);
+      return successResponse(res, result, result.message);
     } catch (error) {
       return exceptionResponse(res, error);
     }
@@ -36,8 +39,10 @@ class AuthController {
 
   async verifyOTP(req, res) {
     try {
-      const { email, otp, type = 'EMAIL_VERIFICATION' } = req.body;
-      const result = await authService.verifyOTP(email, otp, type);
+      const { contact, email, otp, type = 'EMAIL_VERIFICATION' } = req.body;
+      // Support both 'contact' and 'email' for backward compatibility
+      const contactToVerify = contact || email;
+      const result = await authService.verifyOTP(contactToVerify, otp, type);
       return successResponse(res, result, result.message);
     } catch (error) {
       return exceptionResponse(res, error);
@@ -46,10 +51,12 @@ class AuthController {
 
   async resetPassword(req, res) {
     try {
-      const result = await authService.resetPassword(
-        req.body.email,
-        req.body.password
-      );
+      const { contact, email, password, contactType } = req.body;
+      const contactData = {
+        contact: contact || email,
+        contactType
+      };
+      const result = await authService.resetPassword(contactData, password);
       return successResponse(res, result, result.message);
     } catch (error) {
       return exceptionResponse(res, error);

@@ -268,6 +268,29 @@ class AuthService {
 
     return { message: 'Password updated successfully' };
   }
+
+  async logout(userId, accessToken) {
+    const prisma = require('../config/dbConfig');
+    
+    // Blacklist the access token
+    await prisma.blacklistedToken.create({
+      data: {
+        token: accessToken,
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) // 1 day
+      }
+    });
+
+    // Revoke all refresh tokens for the user
+    await prisma.refreshToken.updateMany({
+      where: { userId },
+      data: { isRevoked: true }
+    });
+
+    // Clear FCM token
+    await userRepository.updateUser(userId, { fcmToken: null });
+
+    return { message: 'Logged out successfully' };
+  }
 }
 
 module.exports = new AuthService();

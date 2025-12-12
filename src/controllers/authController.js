@@ -75,6 +75,17 @@ class AuthController {
       return exceptionResponse(res, error);
     }
   }
+
+  async logout(req, res) {
+    try {
+      const userId = req.user.id;
+      const accessToken = req.token;
+      const result = await authService.logout(userId, accessToken);
+      return successResponse(res, result, result.message);
+    } catch (error) {
+      return exceptionResponse(res, error);
+    }
+  }
 }
 
 module.exports = new AuthController();

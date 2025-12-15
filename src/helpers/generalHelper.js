@@ -7,9 +7,9 @@ class generalHelper {
     return await bcrypt.hash(password, 12);
   }
 
-  // Generate a random 6-digit OTP
+  // Generate a random 5-digit OTP
   static generateOTP() {
-    return crypto.randomInt(100000, 999999).toString();
+    return crypto.randomInt(10000, 99999).toString();
   }
 
   static createExpiryTime(value) {

@@ -47,6 +47,7 @@ class AuthService {
           name: existingUser.name,
           email: existingUser.email,
           phone: existingUser.phone,
+          otp: otp,
           message: `OTP resent to your ${existingUser.email ? 'email' : 'phone'}. Please verify to complete registration.`
         };
       }
@@ -94,6 +95,7 @@ class AuthService {
       name: user.name,
       email: user.email,
       phone: user.phone,
+      otp: otp,
       message: `Registration successful. Please check your ${user.email ? 'email' : 'phone'} for OTP verification.`
     };
   }

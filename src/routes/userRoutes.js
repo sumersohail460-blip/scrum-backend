@@ -8,6 +8,8 @@ const router = express.Router();
 router.get('/', userController.getAllUsers);
 router.get('/profile', authMiddleware, userController.getProfile);
 router.put('/profile', authMiddleware, upload.single('image'), userController.updateProfile);
+router.get('/notification-settings', authMiddleware, userController.getSettings);
+router.put('/notification-settings', authMiddleware, userController.updateSettings);
 router.delete('/:id', userController.deleteUser);
 
 module.exports = router;

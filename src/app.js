@@ -10,8 +10,9 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// Serve static files (images)
+// Serve static files (profile images)
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+app.use('/uploads/profile', express.static(path.join(__dirname, '../uploads/profile')));
 
 app.use('/api', routes);
 

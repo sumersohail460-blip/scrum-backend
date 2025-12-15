@@ -24,14 +24,18 @@ model User {
   isVerified    Boolean   @default(false)
   authMethod    String?   @default("EMAIL")
   socialId      String?
-  fcmToken      String?
-  lastLoginAt   DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  fcmToken                String?
+  pushNotifications       Boolean   @default(true)
+  emailNotifications      Boolean   @default(true)
+  marketingCommunications Boolean   @default(false)
+  lastLoginAt             DateTime?
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
   
   // Relations
   otpCodes      OtpCode[]
   refreshTokens RefreshToken[]
+  vehicles      Vehicle[]
   
   @@map("users")
 }
@@ -72,6 +76,22 @@ model BlacklistedToken {
   createdAt DateTime @default(now())
   
   @@map("blacklisted_tokens")
+}
+
+model Vehicle {
+  id        String   @id @default(uuid())
+  userId    String
+  make      String
+  model     String
+  plateNo   String   @unique
+  color     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("vehicles")
 }
 
 enum OtpType {

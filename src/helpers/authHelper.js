@@ -32,6 +32,7 @@ exports.getTokenFromRequest = (req) => {
 exports.generateUserJwtToken = async (user) => {
   const payload = {
     user: {
+      userId: user.id,
       id: user.id,
       name: user.name,
       email: user.email,
@@ -39,7 +40,7 @@ exports.generateUserJwtToken = async (user) => {
   };
 
   let $token = jwt.sign(payload, process.env.JWT_SECRET, {
-    expiresIn: process.env.ACCESS_TOKEN_EXPIRES_IN || "15m",
+    expiresIn: process.env.JWT_EXPIRATION || "1d",
   });
   return $token;
 };
@@ -50,6 +51,7 @@ exports.generateUserJwtToken = async (user) => {
 exports.generateUserRefreshToken = async (user) => {
   const payload = {
     user: {
+      userId: user.id,
       id: user.id,
       name: user.name,
       email: user.email,
@@ -57,7 +59,7 @@ exports.generateUserRefreshToken = async (user) => {
   };
 
   const refreshToken = jwt.sign(payload, process.env.JWT_REFRESH_SECRET, {
-    expiresIn: process.env.REFRESH_TOKEN_EXPIRES_IN || "7d",
+    expiresIn: process.env.JWT_REFRESH_EXPIRATION || "7d",
   });
   return refreshToken;
 };

@@ -117,6 +117,49 @@ class UserService {
       createdAt: user.createdAt
     }));
   }
+
+  async updateSettings(userId, settingsData) {
+    const user = await userRepository.findById(userId);
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    const updateFields = {};
+    
+    if (typeof settingsData.pushNotifications === 'boolean') {
+      updateFields.pushNotifications = settingsData.pushNotifications;
+    }
+    
+    if (typeof settingsData.emailNotifications === 'boolean') {
+      updateFields.emailNotifications = settingsData.emailNotifications;
+    }
+    
+    if (typeof settingsData.marketingCommunications === 'boolean') {
+      updateFields.marketingCommunications = settingsData.marketingCommunications;
+    }
+
+    const updatedUser = await userRepository.updateUser(userId, updateFields);
+
+    return {
+      pushNotifications: updatedUser.pushNotifications,
+      emailNotifications: updatedUser.emailNotifications,
+      marketingCommunications: updatedUser.marketingCommunications,
+      message: 'Settings updated successfully'
+    };
+  }
+
+  async getSettings(userId) {
+    const user = await userRepository.findById(userId);
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    return {
+      pushNotifications: user.pushNotifications,
+      emailNotifications: user.emailNotifications,
+      marketingCommunications: user.marketingCommunications
+    };
+  }
 }
 
 module.exports = new UserService();

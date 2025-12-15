@@ -10,7 +10,8 @@ class AuthController {
         'Registration successful. Please verify your email.';
       return successResponse(res, result, message, 201);
     } catch (error) {
-      return exceptionResponse(res, error);
+      const statusCode = error.message.includes('already exists') ? 400 : 500;
+      return exceptionResponse(res, error, statusCode);
     }
   }
 

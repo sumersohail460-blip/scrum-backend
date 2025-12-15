@@ -43,6 +43,26 @@ class UserController {
       return exceptionResponse(res, error);
     }
   }
+
+  async getSettings(req, res) {
+    try {
+      const userId = req.user.id;
+      const result = await userService.getSettings(userId);
+      return successResponse(res, result, 'Settings retrieved successfully');
+    } catch (error) {
+      return exceptionResponse(res, error);
+    }
+  }
+
+  async updateSettings(req, res) {
+    try {
+      const userId = req.user.id;
+      const result = await userService.updateSettings(userId, req.body);
+      return successResponse(res, result, result.message);
+    } catch (error) {
+      return exceptionResponse(res, error);
+    }
+  }
 }
 
 module.exports = new UserController();

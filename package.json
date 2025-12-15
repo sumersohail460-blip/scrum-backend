@@ -26,6 +26,8 @@
     "express-rate-limit": "^7.1.5",
     "joi": "^17.13.3",
     "jsonwebtoken": "^9.0.2",
-    "nodemailer": "^6.9.8"
+    "multer": "^2.0.2",
+    "nodemailer": "^6.9.8",
+    "twilio": "^5.10.7"
   }
 }

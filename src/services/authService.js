@@ -8,11 +8,17 @@ const emailTemplates = require('../emailTemplates');
 
 class AuthService {
   async register(userData) {
-    const existingUser = await userRepository.findByEmail(userData.email);
+    const { contact, contactType, name, password } = userData;
+    const { normalizePhone } = require('../helpers/contactHelper');
+    const TwilioService = require('../utils/sendSmsUtil');
+    
+    const normalizedContact = contactType === 'phone' ? normalizePhone(contact) : contact;
+    const existingUser = await userRepository.findByEmailOrPhone(normalizedContact);
     
     if (existingUser) {
       if (existingUser.isVerified) {
-        throw new Error('User already exists with this email');
+        const contactMethod = existingUser.email ? 'email' : 'phone number';
+        throw new Error(`User already exists with this ${contactMethod}`);
       } else {
         // User exists but not verified, resend OTP
         const otp = generateOTP();
@@ -25,28 +31,40 @@ class AuthService {
           expiresAt
         });
 
-        // Send OTP email
-        await sendEmail(
-          existingUser.email,
-          'Email Verification - OTP',
-          emailTemplates.otpEmailTemplate(otp, existingUser.name)
-        );
+        // Send OTP via email or SMS
+        if (existingUser.email) {
+          await sendEmail(
+            existingUser.email,
+            'Email Verification - OTP',
+            emailTemplates.otpEmailTemplate(otp, existingUser.name)
+          );
+        } else if (existingUser.phone) {
+          await TwilioService.sendOTPSMS(existingUser.phone, otp);
+        }
 
         return {
           id: existingUser.id,
           name: existingUser.name,
           email: existingUser.email,
-          message: 'OTP resent to your email. Please verify to complete registration.'
+          phone: existingUser.phone,
+          message: `OTP resent to your ${existingUser.email ? 'email' : 'phone'}. Please verify to complete registration.`
         };
       }
     }
 
-    const hashedPassword = await hashPassword(userData.password);
-    const user = await userRepository.createUser({
-      name: userData.name,
-      email: userData.email,
+    const hashedPassword = await hashPassword(password);
+    const userCreateData = {
+      name,
       password: hashedPassword
-    });
+    };
+    
+    if (contactType === 'email') {
+      userCreateData.email = normalizedContact;
+    } else {
+      userCreateData.phone = normalizedContact;
+    }
+    
+    const user = await userRepository.createUser(userCreateData);
 
     // Generate OTP for email verification
     const otp = generateOTP();
@@ -59,24 +77,33 @@ class AuthService {
       expiresAt
     });
 
-    // Send OTP email
-    await sendEmail(
-      user.email,
-      'Welcome to Scrum - Email Verification',
-      emailTemplates.otpEmailTemplate(otp, user.name)
-    );
+    // Send OTP via email or SMS
+    if (user.email) {
+      await sendEmail(
+        user.email,
+        // 'Welcome to Scrum - Email Verification',
+        'Email Verification',
+        emailTemplates.otpEmailTemplate(otp, user.name)
+      );
+    } else if (user.phone) {
+      await TwilioService.sendOTPSMS(user.phone, otp);
+    }
 
     return {
       id: user.id,
       name: user.name,
       email: user.email,
-      message: 'Registration successful. Please check your email for OTP verification.'
+      phone: user.phone,
+      message: `Registration successful. Please check your ${user.email ? 'email' : 'phone'} for OTP verification.`
     };
   }
 
   async loginUser(userData) {
-    const { email, password } = userData;
-    const user = await userRepository.findByEmail(email);
+    const { contact, contactType, password } = userData;
+    const { normalizePhone } = require('../helpers/contactHelper');
+    
+    const normalizedContact = contactType === 'phone' ? normalizePhone(contact) : contact;
+    const user = await userRepository.findByEmailOrPhone(normalizedContact);
     
     if (!user) {
       return badResponse('Invalid credentials', 401);
@@ -110,8 +137,13 @@ class AuthService {
     };
   }
 
-  async forgotPassword(email) {
-    const user = await userRepository.findByEmail(email);
+  async forgotPassword(contactData) {
+    const { contact, contactType } = contactData;
+    const { normalizePhone } = require('../helpers/contactHelper');
+    const TwilioService = require('../utils/sendSmsUtil');
+    
+    const normalizedContact = contactType === 'phone' ? normalizePhone(contact) : contact;
+    const user = await userRepository.findByEmailOrPhone(normalizedContact);
     if (!user) {
       throw new Error('User not found');
     }
@@ -134,28 +166,46 @@ class AuthService {
       expiresAt
     });
 
-    // Send password reset OTP email
-    await sendEmail(
-      user.email,
-      'Password Reset - OTP',
-      emailTemplates.otpEmailTemplate(otp, user.name)
-    );
+    // Send password reset OTP via email or SMS
+    if (user.email) {
+      await sendEmail(
+        user.email,
+        'Password Reset - OTP',
+        emailTemplates.otpEmailTemplate(otp, user.name)
+      );
+    } else if (user.phone) {
+      await TwilioService.sendOTPSMS(user.phone, otp);
+    }
 
-    return { message: 'Password reset OTP sent to your email' };
+    return { message: `Password reset OTP sent to your ${user.email ? 'email' : 'phone'}` };
   }
 
-  async verifyOTP(email, code, type = 'EMAIL_VERIFICATION') {
-    const user = await userRepository.findByEmail(email);
+  async verifyOTP(contact, code, type = 'EMAIL_VERIFICATION') {
+    const { detectContactType, normalizePhone } = require('../helpers/contactHelper');
+    const TwilioService = require('../utils/sendSmsUtil');
+    
+    const contactType = detectContactType(contact);
+    const normalizedContact = contactType === 'phone' ? normalizePhone(contact) : contact;
+    const user = await userRepository.findByEmailOrPhone(normalizedContact);
+    
     if (!user) {
       throw new Error('User not found');
     }
 
-    const validOTP = await otpRepository.findValidOTP(user.id, code, type);
-    if (!validOTP) {
-      throw new Error('Invalid or expired OTP');
+    // For phone numbers, use Twilio Verify
+    if (user.phone) {
+      const isValidTwilioOTP = await TwilioService.verifyOTP(user.phone, code);
+      if (!isValidTwilioOTP) {
+        throw new Error('Invalid or expired OTP');
+      }
+    } else {
+      // For email, use database OTP
+      const validOTP = await otpRepository.findValidOTP(user.id, code, type);
+      if (!validOTP) {
+        throw new Error('Invalid or expired OTP');
+      }
+      await otpRepository.markAsUsed(validOTP.id);
     }
-
-    await otpRepository.markAsUsed(validOTP.id);
 
     if (type === 'EMAIL_VERIFICATION') {
       await userRepository.updateUser(user.id, { isVerified: true });
@@ -181,25 +231,34 @@ class AuthService {
     }
   }
 
-  async resetPassword(email, newPassword) {
-    const user = await userRepository.findByEmail(email);
+  async resetPassword(contactData, newPassword) {
+    const { contact, contactType } = contactData;
+    const { normalizePhone } = require('../helpers/contactHelper');
+    
+    const normalizedContact = contactType === 'phone' ? normalizePhone(contact) : contact;
+    const user = await userRepository.findByEmailOrPhone(normalizedContact);
+    
     if (!user) {
       throw new Error('User not found');
     }
 
     if (!user.isVerified) {
-      throw new Error('Please verify your email first');
+      throw new Error('Please verify your account first');
     }
 
     if (!user.isActive) {
       throw new Error('Account is inactive. Please contact admin');
     }
 
-    // Check if user has a recently used PASSWORD_RESET OTP (within last 10 minutes)
-    const recentOTP = await otpRepository.findRecentUsedOTP(user.id, 'PASSWORD_RESET');
-    if (!recentOTP) {
-      throw new Error('Please verify OTP first before resetting password');
+    // For phone users, we don't need to check database OTP since Twilio handles verification
+    if (user.email) {
+      // Check if user has a recently used PASSWORD_RESET OTP (within last 10 minutes)
+      const recentOTP = await otpRepository.findRecentUsedOTP(user.id, 'PASSWORD_RESET');
+      if (!recentOTP) {
+        throw new Error('Please verify OTP first before resetting password');
+      }
     }
+    // For phone users, we assume OTP was verified via Twilio Verify
 
     const hashedPassword = await hashPassword(newPassword);
     await userRepository.updatePassword(user.id, hashedPassword);
@@ -267,6 +326,71 @@ class AuthService {
     await userRepository.updatePassword(user.id, hashedNewPassword);
 
     return { message: 'Password updated successfully' };
+  }
+
+  async logout(userId, accessToken) {
+    const prisma = require('../config/dbConfig');
+    
+    // Blacklist the access token
+    await prisma.blacklistedToken.create({
+      data: {
+        token: accessToken,
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) // 1 day
+      }
+    });
+
+    // Revoke all refresh tokens for the user
+    await prisma.refreshToken.updateMany({
+      where: { userId },
+      data: { isRevoked: true }
+    });
+
+    // Clear FCM token
+    await userRepository.updateUser(userId, { fcmToken: null });
+
+    return { message: 'Logged out successfully' };
+  }
+
+  async resendOTP(contactData) {
+    const { contact, contactType, type = 'EMAIL_VERIFICATION' } = contactData;
+    const { normalizePhone } = require('../helpers/contactHelper');
+    const TwilioService = require('../utils/sendSmsUtil');
+    
+    const normalizedContact = contactType === 'phone' ? normalizePhone(contact) : contact;
+    const user = await userRepository.findByEmailOrPhone(normalizedContact);
+    
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    if (type === 'EMAIL_VERIFICATION' && user.isVerified) {
+      throw new Error('User is already verified');
+    }
+
+    const otp = generateOTP();
+    const expiresAt = createExpiryTime(10);
+
+    await otpRepository.create({
+      userId: user.id,
+      code: otp,
+      type,
+      expiresAt
+    });
+
+    // Send OTP via email or SMS
+    if (user.email) {
+      const subject = type === 'PASSWORD_RESET' ? 'Password Reset - OTP' : 'Email Verification - OTP';
+      await sendEmail(
+        user.email,
+        subject,
+        emailTemplates.otpEmailTemplate(otp, user.name)
+      );
+    } else if (user.phone) {
+      await TwilioService.sendOTPSMS(user.phone, otp);
+    }
+
+    const contactMethod = user.email ? 'email' : 'phone';
+    return { message: `OTP resent to your ${contactMethod}` };
   }
 }
 

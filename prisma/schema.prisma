@@ -16,8 +16,10 @@ datasource db {
 model User {
   id            String    @id @default(uuid())
   name          String
-  email         String    @unique
+  email         String?   @unique
+  phone         String?   @unique
   password      String?
+  image         String?
   isActive      Boolean   @default(true)
   isVerified    Boolean   @default(false)
   authMethod    String?   @default("EMAIL")
@@ -61,6 +63,15 @@ model RefreshToken {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   
   @@map("refresh_tokens")
+}
+
+model BlacklistedToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  
+  @@map("blacklisted_tokens")
 }
 
 enum OtpType {

@@ -1,11 +1,11 @@
 const Joi = require('joi');
 const responseHandler = require('../utils/apiResponseUtil');
+const { detectContactType } = require('../helpers/contactHelper');
 
 const loginUserValidationSchema = Joi.object({
-  email: Joi.string().email().required().messages({
-    'string.empty': 'email is required',
-    'any.required': 'email is required',
-    'string.email': 'email must be a valid email',
+  contact: Joi.string().required().messages({
+    'string.empty': 'email or phone is required',
+    'any.required': 'email or phone is required',
   }),
   password: Joi.string().required().messages({
     'string.empty': 'password is required',
@@ -18,6 +18,14 @@ const loginValidation = (req, res, next) => {
   if (error) {
     return responseHandler.errorResponse(res, error.details[0].message, 422);
   }
+
+  // Validate contact type
+  const contactType = detectContactType(req.body.contact);
+  if (!contactType) {
+    return responseHandler.errorResponse(res, 'Please provide a valid email or phone number', 422);
+  }
+
+  req.body.contactType = contactType;
   next();
 };
 

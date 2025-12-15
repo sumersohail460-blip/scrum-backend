@@ -1,8 +1,9 @@
 const jwt = require("jsonwebtoken");
+const prisma = require("../config/dbConfig");
 const { errorResponse } = require("../utils/apiResponseUtil");
 require("dotenv").config();
 
-const authMiddleware = (req, res, next) => {
+const authMiddleware = async (req, res, next) => {
   const token = req.header("Authorization")?.split(" ")[1]; // Bearer <token>
 
   if (!token) {
@@ -10,9 +11,19 @@ const authMiddleware = (req, res, next) => {
   }
 
   try {
+    // Check if token is blacklisted
+    const blacklisted = await prisma.blacklistedToken.findUnique({
+      where: { token }
+    });
+    
+    if (blacklisted) {
+      return errorResponse(res, "Token has been revoked.", 401);
+    }
+
     // Verify the token with the secret key
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = decoded.user; // Attach user to request
+    req.token = token; // Attach token to request for logout
     next();
   } catch (error) {
     // Handle expired token

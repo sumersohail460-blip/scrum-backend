@@ -1,5 +1,6 @@
 const express = require('express');
 const authRoutes = require('./authRoutes');
+const userRoutes = require('./userRoutes');
 const { rateLimiter } = require('../middlewares/rateLimiterMiddleware');
 const { errorResponse } = require('../utils/apiResponseUtil');
 const router = express.Router();
@@ -8,6 +9,7 @@ const router = express.Router();
 router.use(rateLimiter);
 
 router.use('/auth', authRoutes);
+router.use('/user', userRoutes);
 
 // Health check endpoint
 router.get('/health', async (req, res) => {

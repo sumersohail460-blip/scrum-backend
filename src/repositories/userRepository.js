@@ -13,6 +13,22 @@ class userRepository {
     return await prisma.user.findUnique({ where: { email } });
   }
 
+  async findByPhone(phone) {
+    return await prisma.user.findUnique({ where: { phone } });
+  }
+
+  async findByEmailOrPhone(contact) {
+    const { detectContactType } = require('../helpers/contactHelper');
+    const contactType = detectContactType(contact);
+    
+    if (contactType === 'email') {
+      return await this.findByEmail(contact);
+    } else if (contactType === 'phone') {
+      return await this.findByPhone(contact);
+    }
+    return null;
+  }
+
   async findById(id) {
     return await prisma.user.findUnique({ where: { id } });
   }

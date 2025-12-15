@@ -36,6 +36,7 @@ model User {
   otpCodes      OtpCode[]
   refreshTokens RefreshToken[]
   vehicles      Vehicle[]
+  carts         Cart[]
   
   @@map("users")
 }
@@ -92,6 +93,61 @@ model Vehicle {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   
   @@map("vehicles")
+}
+
+model Category {
+  id    String @id @default(uuid())
+  name  String
+  
+  // Relations
+  items Item[]
+  
+  @@map("categories")
+}
+
+model Item {
+  id            String  @id @default(uuid())
+  categoryId    String
+  name          String
+  detail        String?
+  rating        Float   @default(0) @db.DoublePrecision
+  currentPrice  Decimal @db.Decimal(10, 2)
+  previousPrice Decimal? @db.Decimal(10, 2)
+  imageUrl      String?
+  stock         Int     @default(0)
+  
+  // Relations
+  category  Category   @relation(fields: [categoryId], references: [id])
+  cartItems CartItem[]
+  
+  @@map("items")
+}
+
+model Cart {
+  id        String   @id @default(uuid())
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cartItems CartItem[]
+  
+  @@map("carts")
+}
+
+model CartItem {
+  id       String @id @default(uuid())
+  cartId   String
+  itemId   String
+  quantity Int    @default(1)
+  
+  // Relations
+  cart Cart @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  item Item @relation(fields: [itemId], references: [id])
+  
+  @@unique([cartId, itemId])
+  @@map("cart_items")
 }
 
 enum OtpType {

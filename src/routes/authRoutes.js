@@ -18,6 +18,7 @@ router.post('/social-login', socialLoginValidation, authController.socialLogin);
 router.post('/logout', authMiddleware, authController.logout);
 router.post('/forgot-password', forgotPasswordValidation, authController.forgotPassword);
 router.post('/verify-otp', verifyOTPValidation, authController.verifyOTP);
+router.post('/verify-forget-password-otp', verifyOTPValidation, authController.verifyForgetPasswordOTP);
 router.post('/reset-password', resetPasswordValidation, authController.resetPassword);
 router.post('/resend-otp', resendOTPValidation, authController.resendOTP);
 router.put('/update-password', authMiddleware, updatePasswordValidation, authController.updatePassword);

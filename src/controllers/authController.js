@@ -39,10 +39,18 @@ class AuthController {
 
   async verifyOTP(req, res) {
     try {
-      const { contact, email, otp, type = 'EMAIL_VERIFICATION' } = req.body;
-      // Support both 'contact' and 'email' for backward compatibility
-      const contactToVerify = contact || email;
-      const result = await authService.verifyOTP(contactToVerify, otp, type);
+      const { otp } = req.body;
+      const result = await authService.verifyOTP(otp);
+      return successResponse(res, result, result.message);
+    } catch (error) {
+      return exceptionResponse(res, error);
+    }
+  }
+
+  async verifyForgetPasswordOTP(req, res) {
+    try {
+      const { otp } = req.body;
+      const result = await authService.verifyForgetPasswordOTP(otp);
       return successResponse(res, result, result.message);
     } catch (error) {
       return exceptionResponse(res, error);
@@ -51,12 +59,8 @@ class AuthController {
 
   async resetPassword(req, res) {
     try {
-      const { contact, email, password, contactType } = req.body;
-      const contactData = {
-        contact: contact || email,
-        contactType
-      };
-      const result = await authService.resetPassword(contactData, password);
+      const { userId, password } = req.body;
+      const result = await authService.resetPassword(userId, password);
       return successResponse(res, result, result.message);
     } catch (error) {
       return exceptionResponse(res, error);

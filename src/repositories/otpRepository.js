@@ -17,6 +17,17 @@ class OtpRepository {
     });
   }
 
+  async findValidOTPByCode(code, type) {
+    return await prisma.otpCode.findFirst({
+      where: {
+        code,
+        type,
+        isUsed: false,
+        expiresAt: { gt: new Date() }
+      }
+    });
+  }
+
   async markAsUsed(id) {
     return await prisma.otpCode.update({
       where: { id },

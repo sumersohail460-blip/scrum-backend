@@ -184,9 +184,7 @@ class AuthService {
 
   async verifyOTP(code) {
     // Find user by OTP code
-    console.log('Searching for OTP:', code);
     const validOTP = await otpRepository.findValidOTPByCode(code, 'EMAIL_VERIFICATION');
-    console.log('Found OTP:', validOTP);
     if (!validOTP) {
       throw new Error('Invalid or expired OTP');
     }

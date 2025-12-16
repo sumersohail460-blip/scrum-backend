@@ -44,7 +44,8 @@ class AuthController {
       const result = await authService.verifyOTP(otp);
       return successResponse(res, result, result.message);
     } catch (error) {
-      return exceptionResponse(res, error);
+      const statusCode = error.message.includes('Invalid or expired OTP') ? 400 : 500;
+      return exceptionResponse(res, error, statusCode);
     }
   }
 
@@ -54,7 +55,8 @@ class AuthController {
       const result = await authService.verifyForgetPasswordOTP(otp);
       return successResponse(res, result, result.message);
     } catch (error) {
-      return exceptionResponse(res, error);
+      const statusCode = error.message.includes('Invalid or expired OTP') ? 400 : 500;
+      return exceptionResponse(res, error, statusCode);
     }
   }
 

@@ -31,7 +31,19 @@ class ItemController {
 
   async createItem(req, res) {
     try {
-      const item = await itemService.createItem(req.body);
+      const itemData = { ...req.body };
+      
+      // Convert string fields to proper types
+      if (itemData.currentPrice) itemData.currentPrice = parseInt(itemData.currentPrice);
+      if (itemData.previousPrice) itemData.previousPrice = parseInt(itemData.previousPrice);
+      if (itemData.rating) itemData.rating = parseFloat(itemData.rating);
+      if (itemData.stock) itemData.stock = parseInt(itemData.stock);
+      
+      if (req.file) {
+        const baseUrl = `${req.protocol}://${req.get('host')}`;
+        itemData.imageUrl = `${baseUrl}/uploads/items/${req.file.filename}`;
+      }
+      const item = await itemService.createItem(itemData);
       return successResponse(res, item, 'Item created successfully', 201);
     } catch (error) {
       return errorResponse(res, error.message, 400);
@@ -41,7 +53,19 @@ class ItemController {
   async updateItem(req, res) {
     try {
       const { id } = req.params;
-      const item = await itemService.updateItem(id, req.body);
+      const itemData = { ...req.body };
+      
+      // Convert string fields to proper types
+      if (itemData.currentPrice) itemData.currentPrice = parseInt(itemData.currentPrice);
+      if (itemData.previousPrice) itemData.previousPrice = parseInt(itemData.previousPrice);
+      if (itemData.rating) itemData.rating = parseFloat(itemData.rating);
+      if (itemData.stock) itemData.stock = parseInt(itemData.stock);
+      
+      if (req.file) {
+        const baseUrl = `${req.protocol}://${req.get('host')}`;
+        itemData.imageUrl = `${baseUrl}/uploads/items/${req.file.filename}`;
+      }
+      const item = await itemService.updateItem(id, itemData);
       return successResponse(res, item, 'Item updated successfully');
     } catch (error) {
       return errorResponse(res, error.message, 400);

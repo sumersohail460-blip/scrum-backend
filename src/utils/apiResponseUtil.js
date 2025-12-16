@@ -12,7 +12,7 @@ module.exports = {
     return res.status(statusCode).json({
       status: false,
       statusCode: statusCode,
-      error: message || "Something went wrong",
+      message: message || "Something went wrong",
     });
   },
 
@@ -20,7 +20,7 @@ module.exports = {
     return {
       status: false,
       statusCode: statusCode,
-      error: message || "Something went wrong",
+      message: message || "Something went wrong",
     };
   },
 

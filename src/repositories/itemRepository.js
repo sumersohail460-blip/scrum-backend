@@ -23,10 +23,13 @@ class ItemRepository {
     });
   }
 
-  async create(data) {
+  async create(itemData) {
+    console.log("itemData-------------------------", itemData)
     return await prisma.item.create({
-      data,
-      include: { category: true }
+      data: itemData,
+      include: {
+        category: true
+      }
     });
   }
 

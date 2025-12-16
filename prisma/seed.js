@@ -19,19 +19,6 @@ async function main() {
     data: { name: 'Breakfast' }
   });
 
-  // Create item
-  await prisma.item.create({
-    data: {
-      categoryId: coffeeCategory.id,
-      name: 'Caramel Creme',
-      detail: 'Bitter smooth perfect coffee',
-      currentPrice: 700,
-      previousPrice: 900,
-      rating: 4.5,
-      stock: 50
-    }
-  });
-
   console.log('Seed data created successfully!');
 }
 

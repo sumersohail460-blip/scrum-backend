@@ -32,7 +32,7 @@ class AuthController {
   async forgotPassword(req, res) {
     try {
       const result = await authService.forgotPassword(req.body);
-      return successResponse(res, {}, result.message);
+      return successResponse(res, result, result.message);
     } catch (error) {
       return exceptionResponse(res, error);
     }

@@ -22,8 +22,16 @@ class ItemController {
   async getItem(req, res) {
     try {
       const { id } = req.params;
-      const item = await itemService.getItemById(id);
-      return successResponse(res, item, 'Item retrieved successfully');
+      const { withOptions } = req.query;
+      
+      let result;
+      if (withOptions === 'true') {
+        result = await itemService.getItemWithOptions(id);
+      } else {
+        result = await itemService.getItemById(id);
+      }
+      
+      return successResponse(res, result, 'Item retrieved successfully');
     } catch (error) {
       return errorResponse(res, error.message, 404);
     }

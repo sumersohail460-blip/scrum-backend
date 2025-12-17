@@ -179,7 +179,7 @@ class AuthService {
       await TwilioService.sendOTPSMS(user.phone, otp);
     }
 
-    return { message: `Password reset OTP sent to your ${user.email ? 'email' : 'phone'}` };
+    return { message: `Password reset OTP sent to your ${user.email ? 'email' : 'phone'}`, otp: otp };
   }
 
   async verifyOTP(code, contact) {

@@ -17,6 +17,34 @@ class ItemService {
     return item;
   }
 
+  async getItemWithOptions(id) {
+    const categoryOptionRepository = require('../repositories/categoryOptionRepository');
+    const addOnRepository = require('../repositories/addOnRepository');
+    
+    const item = await itemRepository.findById(id);
+    if (!item) {
+      throw new Error('Item not found');
+    }
+    
+    const categoryOptions = await categoryOptionRepository.findByCategoryId(item.categoryId);
+    const addOns = await addOnRepository.findActive();
+    
+    // Group category options by type for better frontend mapping
+    const groupedOptions = categoryOptions.reduce((acc, option) => {
+      if (!acc[option.optionType]) {
+        acc[option.optionType] = [];
+      }
+      acc[option.optionType].push(option);
+      return acc;
+    }, {});
+    
+    return {
+      item,
+      categoryOptions: groupedOptions,
+      addOns
+    };
+  }
+
   async createItem(data) {
     return await itemRepository.create(data);
   }

@@ -6,32 +6,50 @@ class VehicleRepository {
   }
 
   async findById(id) {
-    return await prisma.vehicle.findUnique({ 
+    const result = await prisma.vehicle.findUnique({ 
       where: { id },
       include: { user: true }
     });
+    if (result?.user) {
+      delete result.user.password;
+    }
+    return result;
   }
 
   async findByUserId(userId) {
-    return await prisma.vehicle.findMany({ 
+    const results = await prisma.vehicle.findMany({ 
       where: { userId },
       include: { user: true }
     });
+    results.forEach(result => {
+      if (result?.user) {
+        delete result.user.password;
+      }
+    });
+    return results;
   }
 
   async findByPlateNo(plateNo) {
-    return await prisma.vehicle.findUnique({ 
+    const result = await prisma.vehicle.findUnique({ 
       where: { plateNo },
       include: { user: true }
     });
+    if (result?.user) {
+      delete result.user.password;
+    }
+    return result;
   }
 
   async update(id, updateData) {
-    return await prisma.vehicle.update({
+    const result = await prisma.vehicle.update({
       where: { id },
       data: updateData,
       include: { user: true }
     });
+    if (result?.user) {
+      delete result.user.password;
+    }
+    return result;
   }
 
   async delete(id) {
@@ -39,9 +57,15 @@ class VehicleRepository {
   }
 
   async findAll() {
-    return await prisma.vehicle.findMany({
+    const results = await prisma.vehicle.findMany({
       include: { user: true }
     });
+    results.forEach(result => {
+      if (result?.user) {
+        delete result.user.password;
+      }
+    });
+    return results;
   }
 }
 

@@ -91,9 +91,15 @@ class AuthController {
       const { currentPassword, newPassword } = req.body;
       const userId = req.user.id;
       const result = await authService.updatePassword(userId, currentPassword, newPassword);
-      return successResponse(res, {}, result.message);
+      return successResponse(res, result.message);
     } catch (error) {
-      return exceptionResponse(res, error);
+      let statusCode = 500;
+      if (error.message.includes('Current password is incorrect') || 
+          error.message.includes('User not found') ||
+          error.message.includes('Cannot update password')) {
+        statusCode = 400;
+      }
+      return exceptionResponse(res, error, statusCode);
     }
   }
 

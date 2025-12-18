@@ -34,7 +34,13 @@ class AuthController {
       const result = await authService.forgotPassword(req.body);
       return successResponse(res, result, result.message);
     } catch (error) {
-      return exceptionResponse(res, error);
+      let statusCode = 500;
+      if (error.message.includes('User not found') || 
+          error.message.includes('verify your') ||
+          error.message.includes('inactive')) {
+        statusCode = 400;
+      }
+      return exceptionResponse(res, error, statusCode);
     }
   }
 

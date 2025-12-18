@@ -29,7 +29,15 @@ async function main() {
       previousPrice: 900,
       rating: 4.5,
       stock: 50,
-      imageUrl: 'http://192.168.18.141:5000/uploads/items/item-1765966006319-278903461.jpg'
+      images: {
+        create: [
+          {
+            imageUrl: 'http://192.168.18.141:5000/uploads/items/item-1765966006319-278903461.jpg',
+            isPrimary: true,
+            order: 0
+          }
+        ]
+      }
     }
   });
 

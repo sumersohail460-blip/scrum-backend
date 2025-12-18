@@ -7,6 +7,7 @@ const itemRoutes = require('./itemRoutes');
 const categoryOptionRoutes = require('./categoryOptionRoutes');
 const addOnRoutes = require('./addOnRoutes');
 const favouriteRoutes = require('./favouriteRoutes');
+const cartRoutes = require('./cartRoutes');
 const { rateLimiter } = require('../middlewares/rateLimiterMiddleware');
 const { errorResponse } = require('../utils/apiResponseUtil');
 const router = express.Router();
@@ -22,6 +23,7 @@ router.use('/items', itemRoutes);
 router.use('/category-options', categoryOptionRoutes);
 router.use('/add-ons', addOnRoutes);
 router.use('/favourites', favouriteRoutes);
+router.use('/cart', cartRoutes);
 
 // Health check endpoint
 router.get('/health', async (req, res) => {

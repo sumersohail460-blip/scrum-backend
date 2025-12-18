@@ -116,16 +116,29 @@ model Item {
   rating        Float   @default(0) @db.DoublePrecision
   currentPrice  Decimal @db.Decimal(10, 2)
   previousPrice Decimal? @db.Decimal(10, 2)
-  imageUrl      String?
   stock         Int     @default(0)
   
   // Relations
-  category   Category   @relation(fields: [categoryId], references: [id])
+  category   Category    @relation(fields: [categoryId], references: [id])
+  images     ItemImage[]
   cartItems  CartItem[]
   orderItems OrderItem[]
   favourites Favourite[]
   
   @@map("items")
+}
+
+model ItemImage {
+  id        String  @id @default(uuid())
+  itemId    String
+  imageUrl  String
+  isPrimary Boolean @default(false)
+  order     Int     @default(0)
+  
+  // Relations
+  item Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  
+  @@map("item_images")
 }
 
 model Cart {

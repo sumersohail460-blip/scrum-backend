@@ -49,7 +49,7 @@ const itemUpload = multer({
   limits: {
     fileSize: 5 * 1024 * 1024 // 5MB limit
   }
-});
+}).any(); // Accept any field names
 
 const profileUpload = multer({
   storage: profileStorage,
@@ -60,6 +60,7 @@ const profileUpload = multer({
 });
 
 module.exports = {
-  uploadItemImage: itemUpload.single('image'),
+  uploadItemImage: itemUpload,
+  uploadItemImages: itemUpload, // Accept any files
   uploadProfileImage: profileUpload.single('image')
 };

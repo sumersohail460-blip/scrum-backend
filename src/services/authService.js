@@ -117,7 +117,8 @@ class AuthService {
     }
 
     if (!user.isVerified) {
-      return badResponse('Please verify your email first', 400);
+      const contactMethod = user.email ? 'email' : 'phone';
+      return badResponse(`Please verify your ${contactMethod} first`, 400);
     }
 
     if (!user.isActive) {
@@ -151,7 +152,8 @@ class AuthService {
     }
 
     if (!user.isVerified) {
-      throw new Error('Please verify your email first before resetting password');
+      const contactMethod = user.email ? 'email' : 'phone';
+      throw new Error(`Account not verified. Please verify your ${contactMethod} first before resetting password`);
     }
 
     if (!user.isActive) {

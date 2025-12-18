@@ -47,10 +47,24 @@ class ItemController {
       if (itemData.rating) itemData.rating = parseFloat(itemData.rating);
       if (itemData.stock) itemData.stock = parseInt(itemData.stock);
       
-      if (req.file) {
+      // Handle multiple images
+      if (req.files && req.files.length > 0) {
         const baseUrl = `${req.protocol}://${req.get('host')}`;
-        itemData.imageUrl = `${baseUrl}/uploads/items/${req.file.filename}`;
+        const primaryIndex = parseInt(itemData.primaryImageIndex) || 0;
+        
+        const imageFiles = req.files.filter(file => file.fieldname.startsWith('images'));
+        
+        if (imageFiles.length > 0) {
+          itemData.images = imageFiles.map((file, index) => ({
+            imageUrl: `${baseUrl}/uploads/items/${file.filename}`,
+            isPrimary: index === primaryIndex,
+            order: index
+          }));
+        }
+        
+        delete itemData.primaryImageIndex;
       }
+      
       const item = await itemService.createItem(itemData);
       return successResponse(res, item, 'Item created successfully', 201);
     } catch (error) {
@@ -69,10 +83,24 @@ class ItemController {
       if (itemData.rating) itemData.rating = parseFloat(itemData.rating);
       if (itemData.stock) itemData.stock = parseInt(itemData.stock);
       
-      if (req.file) {
+      // Handle multiple images
+      if (req.files && req.files.length > 0) {
         const baseUrl = `${req.protocol}://${req.get('host')}`;
-        itemData.imageUrl = `${baseUrl}/uploads/items/${req.file.filename}`;
+        const primaryIndex = parseInt(itemData.primaryImageIndex) || 0;
+        
+        const imageFiles = req.files.filter(file => file.fieldname.startsWith('images'));
+        
+        if (imageFiles.length > 0) {
+          itemData.images = imageFiles.map((file, index) => ({
+            imageUrl: `${baseUrl}/uploads/items/${file.filename}`,
+            isPrimary: index === primaryIndex,
+            order: index
+          }));
+        }
+        
+        delete itemData.primaryImageIndex;
       }
+      
       const item = await itemService.updateItem(id, itemData);
       return successResponse(res, item, 'Item updated successfully');
     } catch (error) {

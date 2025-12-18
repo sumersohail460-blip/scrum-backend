@@ -3,7 +3,13 @@ const prisma = require('../config/dbConfig');
 class ItemRepository {
   async findAll() {
     return await prisma.item.findMany({
-      include: { category: true },
+      include: { 
+        category: true,
+        images: {
+          where: { isPrimary: true },
+          take: 1
+        }
+      },
       orderBy: { name: 'asc' }
     });
   }
@@ -11,7 +17,13 @@ class ItemRepository {
   async findByCategory(categoryId) {
     return await prisma.item.findMany({
       where: { categoryId },
-      include: { category: true },
+      include: { 
+        category: true,
+        images: {
+          where: { isPrimary: true },
+          take: 1
+        }
+      },
       orderBy: { name: 'asc' }
     });
   }
@@ -19,25 +31,63 @@ class ItemRepository {
   async findById(id) {
     return await prisma.item.findUnique({
       where: { id },
-      include: { category: true }
-    });
-  }
-
-  async create(itemData) {
-    console.log("itemData-------------------------", itemData)
-    return await prisma.item.create({
-      data: itemData,
-      include: {
-        category: true
+      include: { 
+        category: true,
+        images: {
+          orderBy: [{ isPrimary: 'desc' }, { order: 'asc' }]
+        }
       }
     });
   }
 
-  async update(id, data) {
+  async create(itemData) {
+    const { images, ...data } = itemData;
+    return await prisma.item.create({
+      data: {
+        ...data,
+        images: images ? {
+          create: images.map((img, index) => ({
+            imageUrl: img.imageUrl,
+            isPrimary: img.isPrimary || index === 0,
+            order: index
+          }))
+        } : undefined
+      },
+      include: {
+        category: true,
+        images: {
+          orderBy: [{ isPrimary: 'desc' }, { order: 'asc' }]
+        }
+      }
+    });
+  }
+
+  async update(id, updateData) {
+    const { images, ...data } = updateData;
+    
+    if (images) {
+      // Delete existing images and create new ones
+      await prisma.itemImage.deleteMany({ where: { itemId: id } });
+    }
+    
     return await prisma.item.update({
       where: { id },
-      data,
-      include: { category: true }
+      data: {
+        ...data,
+        images: images ? {
+          create: images.map((img, index) => ({
+            imageUrl: img.imageUrl,
+            isPrimary: img.isPrimary || index === 0,
+            order: index
+          }))
+        } : undefined
+      },
+      include: { 
+        category: true,
+        images: {
+          orderBy: [{ isPrimary: 'desc' }, { order: 'asc' }]
+        }
+      }
     });
   }
 

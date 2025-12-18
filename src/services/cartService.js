@@ -1,0 +1,117 @@
+const cartRepository = require('../repositories/cartRepository');
+const itemRepository = require('../repositories/itemRepository');
+
+class CartService {
+  async addToCart(userId, itemId, quantity = 1) {
+    // Check if item exists
+    const item = await itemRepository.findById(itemId);
+    if (!item) {
+      throw new Error('Item not found');
+    }
+
+    // Check stock availability
+    if (item.stock < quantity) {
+      throw new Error('Insufficient stock available');
+    }
+
+    // Find or create user cart
+    let cart = await cartRepository.findUserCart(userId);
+    if (!cart) {
+      cart = await cartRepository.createCart(userId);
+    }
+
+    // Add item to cart
+    const cartItem = await cartRepository.addItemToCart(cart.id, itemId, quantity);
+    
+    return {
+      message: 'Item added to cart successfully',
+      cartItem
+    };
+  }
+
+  async getCart(userId) {
+    const cart = await cartRepository.findUserCart(userId);
+    if (!cart) {
+      return {
+        cartItems: [],
+        totalItems: 0,
+        totalAmount: 0
+      };
+    }
+
+    const totalItems = cart.cartItems.reduce((sum, item) => sum + item.quantity, 0);
+    const totalAmount = cart.cartItems.reduce((sum, item) => 
+      sum + (parseFloat(item.item.currentPrice) * item.quantity), 0
+    );
+
+    return {
+      cartItems: cart.cartItems,
+      totalItems,
+      totalAmount: totalAmount.toFixed(2)
+    };
+  }
+
+  async updateCartItem(userId, itemId, quantity) {
+    if (quantity <= 0) {
+      throw new Error('Quantity must be greater than 0');
+    }
+
+    const cart = await cartRepository.findUserCart(userId);
+    if (!cart) {
+      throw new Error('Cart not found');
+    }
+
+    // Check if item exists in cart
+    const existingItem = cart.cartItems.find(item => item.itemId === itemId);
+    if (!existingItem) {
+      throw new Error('Item not found in cart');
+    }
+
+    // Check stock availability
+    const item = await itemRepository.findById(itemId);
+    if (item.stock < quantity) {
+      throw new Error('Insufficient stock available');
+    }
+
+    const updatedItem = await cartRepository.updateCartItemQuantity(cart.id, itemId, quantity);
+    
+    return {
+      message: 'Cart item updated successfully',
+      cartItem: updatedItem
+    };
+  }
+
+  async removeFromCart(userId, itemId) {
+    const cart = await cartRepository.findUserCart(userId);
+    if (!cart) {
+      throw new Error('Cart not found');
+    }
+
+    // Check if item exists in cart
+    const existingItem = cart.cartItems.find(item => item.itemId === itemId);
+    if (!existingItem) {
+      throw new Error('Item not found in cart');
+    }
+
+    await cartRepository.removeItemFromCart(cart.id, itemId);
+    
+    return {
+      message: 'Item removed from cart successfully'
+    };
+  }
+
+  async clearCart(userId) {
+    const cart = await cartRepository.findUserCart(userId);
+    if (!cart) {
+      throw new Error('Cart not found');
+    }
+
+    await cartRepository.clearCart(cart.id);
+    
+    return {
+      message: 'Cart cleared successfully'
+    };
+  }
+}
+
+module.exports = new CartService();

@@ -70,9 +70,16 @@ class AuthController {
     try {
       const { contact, password } = req.body;
       const result = await authService.resetPassword(contact, password);
-      return successResponse(res, {}, result.message);
+      return successResponse(res, result.message);
     } catch (error) {
-      return exceptionResponse(res, error);
+      let statusCode = 500;
+      if (error.message.includes('User not found') || 
+          error.message.includes('verify') ||
+          error.message.includes('inactive') ||
+          error.message.includes('OTP')) {
+        statusCode = 400;
+      }
+      return exceptionResponse(res, error, statusCode);
     }
   }
 

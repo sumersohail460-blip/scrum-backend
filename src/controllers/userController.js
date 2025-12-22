@@ -6,7 +6,10 @@ class UserController {
     try {
       const userId = req.user.id;
       const updateData = req.body;
-      const imageFile = req.file;
+      let imageFile = req.file;
+      if (!imageFile && req.files && req.files.length > 0) {
+        imageFile = req.files[0]; // Take the first file
+      }
 
       const result = await userService.updateProfile(userId, updateData, imageFile);
       return successResponse(res, result, result.message);

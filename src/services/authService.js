@@ -135,6 +135,8 @@ class AuthService {
       id: user.id,
       name: user.name,
       email: user.email,
+      phone: user.phone,
+      image_url: user.image ? `${process.env.BASE_URL || 'http://localhost:5000'}/uploads/profile/${user.image}` : null,
       access_token: accessToken,
       refresh_token: refreshToken
     };
@@ -212,6 +214,8 @@ class AuthService {
       id: user.id,
       name: user.name,
       email: user.email,
+      phone: user.phone,
+      image_url: user.image ? `${process.env.BASE_URL || 'http://localhost:5000'}/uploads/profile/${user.image}` : null,
       access_token: accessToken,
       refresh_token: refreshToken,
       message: 'Email verified successfully'

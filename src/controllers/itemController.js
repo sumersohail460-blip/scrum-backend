@@ -49,14 +49,13 @@ class ItemController {
       
       // Handle multiple images
       if (req.files && req.files.length > 0) {
-        const baseUrl = `${req.protocol}://${req.get('host')}`;
         const primaryIndex = parseInt(itemData.primaryImageIndex) || 0;
         
         const imageFiles = req.files.filter(file => file.fieldname.startsWith('images'));
         
         if (imageFiles.length > 0) {
           itemData.images = imageFiles.map((file, index) => ({
-            imageUrl: `${baseUrl}/uploads/items/${file.filename}`,
+            imageUrl: file.path, // Cloudinary URL
             isPrimary: index === primaryIndex,
             order: index
           }));
@@ -85,14 +84,13 @@ class ItemController {
       
       // Handle multiple images
       if (req.files && req.files.length > 0) {
-        const baseUrl = `${req.protocol}://${req.get('host')}`;
         const primaryIndex = parseInt(itemData.primaryImageIndex) || 0;
         
         const imageFiles = req.files.filter(file => file.fieldname.startsWith('images'));
         
         if (imageFiles.length > 0) {
           itemData.images = imageFiles.map((file, index) => ({
-            imageUrl: `${baseUrl}/uploads/items/${file.filename}`,
+            imageUrl: file.path, // Cloudinary URL
             isPrimary: index === primaryIndex,
             order: index
           }));

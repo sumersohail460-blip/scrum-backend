@@ -1,40 +1,31 @@
 const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
+const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
-// Ensure directories exist
-const itemsDir = path.join(__dirname, '../../uploads/items');
-const profileDir = path.join(__dirname, '../../uploads/profile');
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
 
-if (!fs.existsSync(itemsDir)) {
-  fs.mkdirSync(itemsDir, { recursive: true });
-}
-if (!fs.existsSync(profileDir)) {
-  fs.mkdirSync(profileDir, { recursive: true });
-}
-
-// Item storage configuration
-const itemStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    console.log('Setting destination for file:', file.originalname);
-    cb(null, itemsDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const filename = 'item-' + uniqueSuffix + path.extname(file.originalname);
-    console.log('Generated filename:', filename);
-    cb(null, filename);
+// Cloudinary storage for items
+const itemCloudinaryStorage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'scrum-coffee/items',
+    allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
+    transformation: [{ width: 800, height: 600, crop: 'limit' }]
   }
 });
 
-// Profile storage configuration
-const profileStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, profileDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, 'profile-' + uniqueSuffix + path.extname(file.originalname));
+// Cloudinary storage for profiles
+const profileCloudinaryStorage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'scrum-coffee/profiles',
+    allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
+    transformation: [{ width: 400, height: 400, crop: 'limit' }]
   }
 });
 
@@ -61,12 +52,12 @@ const fileFilter = (req, file, cb) => {
 };
 
 const itemUpload = multer({
-  storage: itemStorage,
+  storage: itemCloudinaryStorage,
   fileFilter: fileFilter,
   limits: {
     fileSize: 5 * 1024 * 1024 // 5MB limit
   }
-}).any(); // Accept any field names
+}).any();
 
 // Add logging wrapper
 const loggedItemUpload = (req, res, next) => {
@@ -101,7 +92,7 @@ const loggedItemUpload = (req, res, next) => {
 };
 
 const profileUpload = multer({
-  storage: profileStorage,
+  storage: profileCloudinaryStorage,
   fileFilter: fileFilter,
   limits: {
     fileSize: 5 * 1024 * 1024 // 5MB limit
@@ -109,12 +100,12 @@ const profileUpload = multer({
 });
 
 const profileUploadAny = multer({
-  storage: profileStorage,
+  storage: profileCloudinaryStorage,
   fileFilter: fileFilter,
   limits: {
     fileSize: 5 * 1024 * 1024 // 5MB limit
   }
-}).any(); // Accept any field names
+}).any();
 
 // Add logging wrapper for profile upload
 const loggedProfileUpload = (req, res, next) => {

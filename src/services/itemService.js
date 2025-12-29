@@ -1,12 +1,12 @@
 const itemRepository = require('../repositories/itemRepository');
 
 class ItemService {
-  async getAllItems() {
-    return await itemRepository.findAll();
+  async getAllItems(userId = null) {
+    return await itemRepository.findAll(userId);
   }
 
-  async getItemsByCategory(categoryId) {
-    return await itemRepository.findByCategory(categoryId);
+  async getItemsByCategory(categoryId, userId = null) {
+    return await itemRepository.findByCategory(categoryId, userId);
   }
 
   async getItemById(id) {

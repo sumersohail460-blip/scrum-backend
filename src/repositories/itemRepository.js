@@ -1,31 +1,49 @@
 const prisma = require('../config/dbConfig');
 
 class ItemRepository {
-  async findAll() {
-    return await prisma.item.findMany({
+  async findAll(userId = null) {
+    const items = await prisma.item.findMany({
       include: { 
         category: true,
         images: {
           where: { isPrimary: true },
           take: 1
-        }
+        },
+        favourites: userId ? {
+          where: { userId }
+        } : false
       },
       orderBy: { name: 'asc' }
     });
+    
+    return items.map(item => ({
+      ...item,
+      isFavourite: userId ? item.favourites.length > 0 : false,
+      favourites: undefined // Remove favourites array from response
+    }));
   }
 
-  async findByCategory(categoryId) {
-    return await prisma.item.findMany({
+  async findByCategory(categoryId, userId = null) {
+    const items = await prisma.item.findMany({
       where: { categoryId },
       include: { 
         category: true,
         images: {
           where: { isPrimary: true },
           take: 1
-        }
+        },
+        favourites: userId ? {
+          where: { userId }
+        } : false
       },
       orderBy: { name: 'asc' }
     });
+    
+    return items.map(item => ({
+      ...item,
+      isFavourite: userId ? item.favourites.length > 0 : false,
+      favourites: undefined // Remove favourites array from response
+    }));
   }
 
   async findById(id) {

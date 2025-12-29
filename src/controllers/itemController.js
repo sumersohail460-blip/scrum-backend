@@ -5,12 +5,13 @@ class ItemController {
   async getItems(req, res) {
     try {
       const { categoryId } = req.query;
+      const userId = req.user?.id; // Get user ID if authenticated
       
       let items;
       if (categoryId) {
-        items = await itemService.getItemsByCategory(categoryId);
+        items = await itemService.getItemsByCategory(categoryId, userId);
       } else {
-        items = await itemService.getAllItems();
+        items = await itemService.getAllItems(userId);
       }
       
       return successResponse(res, items, 'Items retrieved successfully');

@@ -12,7 +12,13 @@ class FavouriteRepository {
       where: { userId },
       include: {
         item: {
-          include: { category: true }
+          include: { 
+            category: true,
+            images: {
+              where: { isPrimary: true },
+              take: 1
+            }
+          }
         }
       },
       orderBy: { createdAt: 'desc' }

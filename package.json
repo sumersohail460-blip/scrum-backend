@@ -29,6 +29,7 @@
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.0.2",
     "multer-storage-cloudinary": "^4.0.0",
+    "ngrok": "^5.0.0-beta.2",
     "nodemailer": "^6.9.8",
     "twilio": "^5.10.7"
   }

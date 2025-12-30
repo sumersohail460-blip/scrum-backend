@@ -27,16 +27,29 @@ class ItemService {
     }
     
     const categoryOptions = await categoryOptionRepository.findByCategoryId(item.categoryId);
-    const addOns = await addOnRepository.findActive();
+    const addOns = await addOnRepository.findByCategoryId(item.categoryId);
     
     // Group category options by type for better frontend mapping
-    const groupedOptions = categoryOptions.reduce((acc, option) => {
-      if (!acc[option.optionType]) {
-        acc[option.optionType] = [];
-      }
-      acc[option.optionType].push(option);
-      return acc;
+    // const groupedOptions = categoryOptions.reduce((acc, option) => {
+    //   if (!acc[option.optionType]) {
+    //     acc[option.optionType] = [];
+    //   }
+    //   acc[option.optionType].push(option);
+    //   return acc;
+    // }, {});
+
+    const groupedOptionsMap = categoryOptions.reduce((acc, option) => {
+    if (!acc[option.optionType]) {
+      acc[option.optionType] = {
+        optionType: option.optionType,
+        options: []
+      };
+    }
+    acc[option.optionType].options.push(option);
+    return acc;
     }, {});
+
+    const groupedOptions = Object.values(groupedOptionsMap);
     
     return {
       item,

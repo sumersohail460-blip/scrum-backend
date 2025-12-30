@@ -14,6 +14,16 @@ class AddOnRepository {
     });
   }
 
+  async findByCategoryId(categoryId) {
+    return await prisma.addOn.findMany({
+      where: { 
+        categoryId,
+        isActive: true 
+      },
+      orderBy: { name: 'asc' }
+    });
+  }
+
   async findById(id) {
     return await prisma.addOn.findUnique({
       where: { id }

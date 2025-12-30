@@ -15,6 +15,16 @@ class CartRepository {
                   take: 1
                 }
               }
+            },
+            cartItemOptions: {
+              include: {
+                categoryOption: true
+              }
+            },
+            cartItemAddOns: {
+              include: {
+                addOn: true
+              }
             }
           }
         }
@@ -28,28 +38,38 @@ class CartRepository {
     });
   }
 
-  async addItemToCart(cartId, itemId, quantity) {
-    return await prisma.cartItem.upsert({
-      where: {
-        cartId_itemId: {
-          cartId,
-          itemId
-        }
-      },
-      update: {
-        quantity: {
-          increment: quantity
-        }
-      },
-      create: {
+  async addItemToCart(cartId, itemId, quantity, selectedOptions = [], selectedAddOns = []) {
+    const cartItem = await prisma.cartItem.create({
+      data: {
         cartId,
         itemId,
-        quantity
+        quantity,
+        cartItemOptions: {
+          create: selectedOptions.map(optionId => ({
+            categoryOptionId: optionId
+          }))
+        },
+        cartItemAddOns: {
+          create: selectedAddOns.map(addOnId => ({
+            addOnId: addOnId
+          }))
+        }
       },
       include: {
-        item: true
+        item: true,
+        cartItemOptions: {
+          include: {
+            categoryOption: true
+          }
+        },
+        cartItemAddOns: {
+          include: {
+            addOn: true
+          }
+        }
       }
     });
+    return cartItem;
   }
 
   async updateCartItemQuantity(cartId, itemId, quantity) {
@@ -62,7 +82,17 @@ class CartRepository {
       },
       data: { quantity },
       include: {
-        item: true
+        item: true,
+        cartItemOptions: {
+          include: {
+            categoryOption: true
+          }
+        },
+        cartItemAddOns: {
+          include: {
+            addOn: true
+          }
+        }
       }
     });
   }

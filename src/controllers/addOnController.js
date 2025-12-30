@@ -4,10 +4,12 @@ const { successResponse, errorResponse } = require('../utils/apiResponseUtil');
 class AddOnController {
   async getAddOns(req, res) {
     try {
-      const { active } = req.query;
+      const { active, categoryId } = req.query;
       
       let addOns;
-      if (active === 'true') {
+      if (categoryId) {
+        addOns = await addOnService.getAddOnsByCategory(categoryId);
+      } else if (active === 'true') {
         addOns = await addOnService.getActiveAddOns();
       } else {
         addOns = await addOnService.getAllAddOns();

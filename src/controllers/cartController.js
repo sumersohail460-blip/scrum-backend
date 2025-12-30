@@ -4,14 +4,20 @@ const { successResponse, errorResponse } = require('../utils/apiResponseUtil');
 class CartController {
   async addToCart(req, res) {
     try {
-      const { itemId, quantity } = req.body;
+      const { itemId, quantity, selectedOptions, selectedAddOns } = req.body;
       const userId = req.user.id;
 
       if (!itemId) {
         return errorResponse(res, 'Item ID is required', 400);
       }
 
-      const result = await cartService.addToCart(userId, itemId, quantity || 1);
+      const result = await cartService.addToCart(
+        userId, 
+        itemId, 
+        quantity || 1, 
+        selectedOptions || [], 
+        selectedAddOns || []
+      );
       return successResponse(res, result, result.message);
     } catch (error) {
       return errorResponse(res, error.message, 400);

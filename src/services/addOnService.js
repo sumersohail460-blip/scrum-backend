@@ -9,6 +9,10 @@ class AddOnService {
     return await addOnRepository.findActive();
   }
 
+  async getAddOnsByCategory(categoryId) {
+    return await addOnRepository.findByCategoryId(categoryId);
+  }
+
   async getAddOnById(id) {
     const addOn = await addOnRepository.findById(id);
     if (!addOn) {

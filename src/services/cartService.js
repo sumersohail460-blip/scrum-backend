@@ -2,7 +2,7 @@ const cartRepository = require('../repositories/cartRepository');
 const itemRepository = require('../repositories/itemRepository');
 
 class CartService {
-  async addToCart(userId, itemId, quantity = 1) {
+  async addToCart(userId, itemId, quantity = 1, selectedOptions = [], selectedAddOns = []) {
     // Check if item exists
     const item = await itemRepository.findById(itemId);
     if (!item) {
@@ -20,8 +20,8 @@ class CartService {
       cart = await cartRepository.createCart(userId);
     }
 
-    // Add item to cart
-    const cartItem = await cartRepository.addItemToCart(cart.id, itemId, quantity);
+    // Add item to cart with customizations
+    const cartItem = await cartRepository.addItemToCart(cart.id, itemId, quantity, selectedOptions, selectedAddOns);
     
     return {
       message: 'Item added to cart successfully',
@@ -40,9 +40,21 @@ class CartService {
     }
 
     const totalItems = cart.cartItems.reduce((sum, item) => sum + item.quantity, 0);
-    const totalAmount = cart.cartItems.reduce((sum, item) => 
-      sum + (parseFloat(item.item.currentPrice) * item.quantity), 0
-    );
+    const totalAmount = cart.cartItems.reduce((sum, cartItem) => {
+      let itemTotal = parseFloat(cartItem.item.currentPrice) * cartItem.quantity;
+      
+      // Add option prices
+      cartItem.cartItemOptions.forEach(option => {
+        itemTotal += parseFloat(option.categoryOption.extraPrice) * cartItem.quantity;
+      });
+      
+      // Add add-on prices
+      cartItem.cartItemAddOns.forEach(addOn => {
+        itemTotal += parseFloat(addOn.addOn.price) * cartItem.quantity;
+      });
+      
+      return sum + itemTotal;
+    }, 0);
 
     return {
       cartItems: cart.cartItems,

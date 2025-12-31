@@ -3,15 +3,13 @@ const itemRepository = require('../repositories/itemRepository');
 
 class CartService {
   async addToCart(userId, itemId, quantity = 1, selectedOptions = [], selectedAddOns = []) {
+    // Convert quantity to integer
+    quantity = parseInt(quantity) || 1;
+    
     // Check if item exists
     const item = await itemRepository.findById(itemId);
     if (!item) {
       throw new Error('Item not found');
-    }
-
-    // Check stock availability
-    if (item.stock < quantity) {
-      throw new Error('Insufficient stock available');
     }
 
     // Find or create user cart
@@ -20,13 +18,36 @@ class CartService {
       cart = await cartRepository.createCart(userId);
     }
 
-    // Add item to cart with customizations
-    const cartItem = await cartRepository.addItemToCart(cart.id, itemId, quantity, selectedOptions, selectedAddOns);
+    // Check if item already exists in cart
+    const existingItem = cart.cartItems.find(cartItem => cartItem.itemId === itemId);
     
-    return {
-      message: 'Item added to cart successfully',
-      cartItem
-    };
+    if (existingItem) {
+      // Replace quantity if item exists (better UX)
+      const newQuantity = quantity;
+      
+      // Check stock availability
+      if (item.stock < newQuantity) {
+        throw new Error(`Cannot set quantity to ${quantity}. Available stock: ${item.stock}`);
+      }
+      
+      const updatedItem = await cartRepository.updateCartItemQuantity(cart.id, itemId, newQuantity);
+      return {
+        message: 'Item quantity updated in cart.',
+        cartItem: updatedItem
+      };
+    } else {
+      // Check stock availability
+      if (item.stock < quantity) {
+        throw new Error('Insufficient stock available');
+      }
+      
+      // Add new item to cart
+      const cartItem = await cartRepository.addItemToCart(cart.id, itemId, quantity, selectedOptions, selectedAddOns);
+      return {
+        message: 'Item added to cart successfully',
+        cartItem
+      };
+    }
   }
 
   async getCart(userId) {
@@ -64,6 +85,9 @@ class CartService {
   }
 
   async updateCartItem(userId, itemId, quantity) {
+    // Convert quantity to integer
+    quantity = parseInt(quantity);
+    
     if (quantity <= 0) {
       throw new Error('Quantity must be greater than 0');
     }

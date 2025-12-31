@@ -172,7 +172,7 @@ model CartItemAddOn {
 model CategoryOption {
   id              String           @id @default(uuid())
   categoryId      String
-  optionType      OptionType
+  optionType      String
   name            String
   extraPrice      Decimal          @default(0) @db.Decimal(10, 2)
   cartItemOptions CartItemOption[]
@@ -223,12 +223,12 @@ model OrderItem {
 }
 
 model OrderItemOption {
-  id          String     @id @default(uuid())
+  id          String    @id @default(uuid())
   orderItemId String
-  optionType  OptionType
+  optionType  String
   optionValue String
-  extraPrice  Decimal    @default(0) @db.Decimal(10, 2)
-  orderItem   OrderItem  @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  extraPrice  Decimal   @default(0) @db.Decimal(10, 2)
+  orderItem   OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
 
   @@map("order_item_options")
 }
@@ -257,11 +257,7 @@ model Favourite {
   @@map("favourites")
 }
 
-enum OptionType {
-  SIZE
-  ICE_LEVEL
-  SUGAR_LEVEL
-}
+
 
 enum OrderStatus {
   PENDING

@@ -198,6 +198,7 @@ model AddOn {
 
 model Order {
   id            String        @id @default(uuid())
+  orderNumber   String        @unique
   userId        String
   serviceType   ServiceType
   pickupType    PickupType?
@@ -292,11 +293,7 @@ enum PickupType {
 
 enum OrderStatus {
   PENDING
-  CONFIRMED
-  PREPARING
-  READY
-  DELIVERED
-  CANCELLED
+  COMPLETED
 }
 
 enum OtpType {

@@ -1,7 +1,13 @@
 const prisma = require('../config/dbConfig');
+const orderRepository = require('./orderRepository');
 
 class ItemRepository {
   async findAll(userId = null) {
+    // Update expired orders to refresh favourites
+    if (userId) {
+      await orderRepository.updateExpiredOrders();
+    }
+    
     const items = await prisma.item.findMany({
       include: { 
         category: true,
@@ -13,7 +19,14 @@ class ItemRepository {
           where: { userId }
         } : false
       },
-      orderBy: { name: 'asc' }
+      orderBy: userId ? [
+        {
+          favourites: {
+            _count: 'desc'
+          }
+        },
+        { name: 'asc' }
+      ] : { name: 'asc' }
     });
     
     return items.map(item => ({
@@ -24,6 +37,11 @@ class ItemRepository {
   }
 
   async findByCategory(categoryId, userId = null) {
+    // Update expired orders to refresh favourites
+    if (userId) {
+      await orderRepository.updateExpiredOrders();
+    }
+    
     const items = await prisma.item.findMany({
       where: { categoryId },
       include: { 
@@ -36,7 +54,14 @@ class ItemRepository {
           where: { userId }
         } : false
       },
-      orderBy: { name: 'asc' }
+      orderBy: userId ? [
+        {
+          favourites: {
+            _count: 'desc'
+          }
+        },
+        { name: 'asc' }
+      ] : { name: 'asc' }
     });
     
     return items.map(item => ({

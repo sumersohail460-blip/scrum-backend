@@ -39,7 +39,8 @@ class OrderController {
   async getUserOrders(req, res) {
     try {
       const userId = req.user.id;
-      const orders = await orderService.getUserOrders(userId);
+      const { status } = req.query;
+      const orders = await orderService.getUserOrders(userId, status);
       return successResponse(res, orders, 'Orders retrieved successfully');
     } catch (error) {
       return errorResponse(res, error.message, 400);
@@ -63,6 +64,17 @@ class OrderController {
       const userId = req.user.id;
       const result = await orderService.deleteOrder(orderId, userId);
       return successResponse(res, result, result.message);
+    } catch (error) {
+      return errorResponse(res, error.message, 400);
+    }
+  }
+
+  async completeOrder(req, res) {
+    try {
+      const { orderId } = req.params;
+      const userId = req.user.id;
+      const result = await orderService.completeOrder(orderId, userId);
+      return successResponse(res, result, 'Order completed successfully');
     } catch (error) {
       return errorResponse(res, error.message, 400);
     }

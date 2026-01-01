@@ -200,8 +200,8 @@ class OrderService {
     };
   }
 
-  async getUserOrders(userId) {
-    return await orderRepository.findUserOrders(userId);
+  async getUserOrders(userId, status = null) {
+    return await orderRepository.findUserOrders(userId, status);
   }
 
   async getOrderById(orderId, userId) {
@@ -241,6 +241,33 @@ class OrderService {
 
   async updateUserPhone(userId, phone) {
     await userRepository.updateUser(userId, { phone });
+  }
+
+  async completeOrder(orderId, userId) {
+    const order = await orderRepository.findOrderById(orderId);
+    if (!order) {
+      throw new Error('Order not found');
+    }
+    
+    if (order.userId !== userId) {
+      throw new Error('Unauthorized access to order');
+    }
+    
+    if (order.status === 'COMPLETED') {
+      throw new Error('Order is already completed');
+    }
+    
+    await orderRepository.updateOrderStatus(orderId, 'COMPLETED');
+    
+    // Trigger auto-favourite checks
+    const autoFavouriteService = require('./autoFavouriteService');
+    for (const orderItem of order.orderItems) {
+      await autoFavouriteService.checkAndAddToFavourites(userId, orderItem.itemId);
+    }
+    
+    return {
+      message: 'Order completed successfully'
+    };
   }
 }
 

@@ -79,6 +79,7 @@ model Vehicle {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders    Order[]
 
   @@map("vehicles")
 }
@@ -196,14 +197,28 @@ model AddOn {
 }
 
 model Order {
-  id          String      @id @default(uuid())
-  userId      String
-  status      OrderStatus @default(PENDING)
-  totalAmount Decimal     @db.Decimal(10, 2)
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  orderItems  OrderItem[]
-  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id            String        @id @default(uuid())
+  userId        String
+  serviceType   ServiceType
+  pickupType    PickupType?
+  scheduledTime DateTime?
+  contactPhone  String?
+  vehicleId     String?
+  paymentMethod PaymentMethod @default(CASH)
+  cardNumber    String?
+  cardExpiry    String?
+  cardCvc       String?
+  cardHolder    String?
+  subtotal      Decimal       @db.Decimal(10, 2)
+  platformFee   Decimal       @db.Decimal(10, 2)
+  gst           Decimal       @db.Decimal(10, 2)
+  totalAmount   Decimal       @db.Decimal(10, 2)
+  status        OrderStatus   @default(PENDING)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  orderItems    OrderItem[]
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vehicle       Vehicle?      @relation(fields: [vehicleId], references: [id])
 
   @@map("orders")
 }
@@ -258,6 +273,22 @@ model Favourite {
 }
 
 
+
+enum PaymentMethod {
+  CASH
+  CARD
+  APPLE_PAY
+}
+
+enum ServiceType {
+  PICKUP
+  DRIVE_THROUGH
+}
+
+enum PickupType {
+  STANDARD
+  SCHEDULED
+}
 
 enum OrderStatus {
   PENDING

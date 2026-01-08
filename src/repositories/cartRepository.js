@@ -34,7 +34,32 @@ class CartRepository {
 
   async createCart(userId) {
     return await prisma.cart.create({
-      data: { userId }
+      data: { userId },
+      include: {
+        cartItems: {
+          include: {
+            item: {
+              include: {
+                category: true,
+                images: {
+                  where: { isPrimary: true },
+                  take: 1
+                }
+              }
+            },
+            cartItemOptions: {
+              include: {
+                categoryOption: true
+              }
+            },
+            cartItemAddOns: {
+              include: {
+                addOn: true
+              }
+            }
+          }
+        }
+      }
     });
   }
 
@@ -112,6 +137,38 @@ class CartRepository {
     return await prisma.cartItem.deleteMany({
       where: { cartId }
     });
+  }
+
+  async isItemInCart(userId, itemId) {
+    const cart = await prisma.cart.findFirst({
+      where: { userId },
+      include: {
+        cartItems: {
+          where: { itemId }
+        }
+      }
+    });
+    
+    return cart && cart.cartItems.length > 0;
+  }
+
+  async getCartItemIdsForUser(userId) {
+    const cart = await prisma.cart.findFirst({
+      where: { userId },
+      include: {
+        cartItems: {
+          select: {
+            itemId: true
+          }
+        }
+      }
+    });
+    
+    if (!cart) {
+      return [];
+    }
+    
+    return cart.cartItems.map(cartItem => cartItem.itemId);
   }
 }
 

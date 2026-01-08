@@ -76,7 +76,8 @@ class AuthController {
       if (error.message.includes('User not found') || 
           error.message.includes('verify') ||
           error.message.includes('inactive') ||
-          error.message.includes('OTP')) {
+          error.message.includes('OTP') ||
+          error.message.includes('New password cannot be the same')) {
         statusCode = 400;
       }
       return exceptionResponse(res, error, statusCode);
@@ -103,7 +104,8 @@ class AuthController {
       let statusCode = 500;
       if (error.message.includes('Current password is incorrect') || 
           error.message.includes('User not found') ||
-          error.message.includes('Cannot update password')) {
+          error.message.includes('Cannot update password') ||
+          error.message.includes('New password cannot be the same')) {
         statusCode = 400;
       }
       return exceptionResponse(res, error, statusCode);

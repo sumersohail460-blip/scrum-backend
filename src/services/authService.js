@@ -324,6 +324,14 @@ class AuthService {
       throw new Error('Please verify OTP first before resetting password');
     }
 
+    // Check if new password is the same as old password
+    if (user.password) {
+      const isSamePassword = await comparePassword(newPassword, user.password);
+      if (isSamePassword) {
+        throw new Error('New password cannot be the same as your current password');
+      }
+    }
+
     const hashedPassword = await hashPassword(newPassword);
     await userRepository.updatePassword(user.id, hashedPassword);
 
@@ -386,6 +394,12 @@ class AuthService {
     const isCurrentPasswordValid = await comparePassword(currentPassword, user.password);
     if (!isCurrentPasswordValid) {
       throw new Error('Current password is incorrect');
+    }
+
+    // Check if new password is the same as old password
+    const isSamePassword = await comparePassword(newPassword, user.password);
+    if (isSamePassword) {
+      throw new Error('New password cannot be the same as your current password');
     }
 
     const hashedNewPassword = await hashPassword(newPassword);

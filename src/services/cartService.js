@@ -19,10 +19,11 @@ class CartService {
     }
 
     // Check if item already exists in cart
-    const existingItem = cart.cartItems.find(cartItem => cartItem.itemId === itemId);
+    // Ensure cartItems is always an array (should be included from createCart/findUserCart)
+    const existingItem = (cart.cartItems || []).find(cartItem => cartItem.itemId === itemId);
     
     if (existingItem) {
-      // Replace quantity if item exists (better UX)
+      // Replace quantity if item exists 
       const newQuantity = quantity;
       
       // Check stock availability

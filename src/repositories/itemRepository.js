@@ -1,5 +1,6 @@
 const prisma = require('../config/dbConfig');
 const orderRepository = require('./orderRepository');
+const cartRepository = require('./cartRepository');
 
 class ItemRepository {
   async findAll(userId = null) {
@@ -7,6 +8,9 @@ class ItemRepository {
     if (userId) {
       await orderRepository.updateExpiredOrders();
     }
+    
+    // Get cart item IDs for the user if authenticated
+    const cartItemIds = userId ? await cartRepository.getCartItemIdsForUser(userId) : [];
     
     const items = await prisma.item.findMany({
       include: { 
@@ -32,6 +36,7 @@ class ItemRepository {
     return items.map(item => ({
       ...item,
       isFavourite: userId ? item.favourites.length > 0 : false,
+      isInCart: userId ? cartItemIds.includes(item.id) : false,
       favourites: undefined // Remove favourites array from response
     }));
   }
@@ -41,6 +46,9 @@ class ItemRepository {
     if (userId) {
       await orderRepository.updateExpiredOrders();
     }
+    
+    // Get cart item IDs for the user if authenticated
+    const cartItemIds = userId ? await cartRepository.getCartItemIdsForUser(userId) : [];
     
     const items = await prisma.item.findMany({
       where: { categoryId },
@@ -67,6 +75,7 @@ class ItemRepository {
     return items.map(item => ({
       ...item,
       isFavourite: userId ? item.favourites.length > 0 : false,
+      isInCart: userId ? cartItemIds.includes(item.id) : false,
       favourites: undefined // Remove favourites array from response
     }));
   }

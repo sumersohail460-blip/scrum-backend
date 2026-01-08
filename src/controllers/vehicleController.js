@@ -5,10 +5,20 @@ class VehicleController {
   async createVehicle(req, res) {
     try {
       const userId = req.user.userId || req.user.id;
-      const vehicleData = req.body;
+      const { make, model, plateNo, color } = req.body;
       
-      const vehicle = await vehicleService.createVehicle(userId, vehicleData);
-      return successResponse(res, 'Vehicle created successfully', vehicle, 201);
+      const missing = [];
+      if (!make) missing.push('make');
+      if (!model) missing.push('model');
+      if (!plateNo) missing.push('plateNo');
+      if (!color) missing.push('color');
+      
+      if (missing.length > 0) {
+        return errorResponse(res, `${missing.join(', ')} ${missing.length === 1 ? 'is' : 'are'} required`, 400);
+      }
+      
+      const vehicle = await vehicleService.createVehicle(userId, { make, model, plateNo, color });
+      return successResponse(res, vehicle, 'Vehicle created successfully', 201);
     } catch (error) {
       return errorResponse(res, error.message, 400);
     }
@@ -18,7 +28,7 @@ class VehicleController {
     try {
       const { id } = req.params;
       const vehicle = await vehicleService.getVehicleById(id);
-      return successResponse(res, 'Vehicle retrieved successfully', vehicle);
+      return successResponse(res, vehicle, 'Vehicle retrieved successfully');
     } catch (error) {
       return errorResponse(res, error.message, 404);
     }
@@ -28,7 +38,7 @@ class VehicleController {
     try {
       const userId = req.user.userId || req.user.id;
       const vehicles = await vehicleService.getUserVehicles(userId);
-      return successResponse(res, 'User vehicles retrieved successfully', vehicles);
+      return successResponse(res, vehicles, 'User vehicles retrieved successfully');
     } catch (error) {
       return errorResponse(res, error.message, 400);
     }
@@ -37,10 +47,20 @@ class VehicleController {
   async updateVehicle(req, res) {
     try {
       const { id } = req.params;
-      const updateData = req.body;
+      const { make, model, plateNo, color } = req.body;
+      
+      if (!make && !model && !plateNo && !color) {
+        return errorResponse(res, 'At least one field (make, model, plateNo, color) is required', 400);
+      }
+      
+      const updateData = {};
+      if (make) updateData.make = make;
+      if (model) updateData.model = model;
+      if (plateNo) updateData.plateNo = plateNo;
+      if (color) updateData.color = color;
       
       const vehicle = await vehicleService.updateVehicle(id, updateData);
-      return successResponse(res, 'Vehicle updated successfully', vehicle);
+      return successResponse(res, vehicle, 'Vehicle updated successfully');
     } catch (error) {
       return errorResponse(res, error.message, 400);
     }
@@ -50,7 +70,7 @@ class VehicleController {
     try {
       const { id } = req.params;
       await vehicleService.deleteVehicle(id);
-      return successResponse(res, 'Vehicle deleted successfully');
+      return successResponse(res, {}, 'Vehicle deleted successfully');
     } catch (error) {
       return errorResponse(res, error.message, 400);
     }
@@ -59,7 +79,7 @@ class VehicleController {
   async getAllVehicles(req, res) {
     try {
       const vehicles = await vehicleService.getAllVehicles();
-      return successResponse(res, 'All vehicles retrieved successfully', vehicles);
+      return successResponse(res, vehicles, 'All vehicles retrieved successfully');
     } catch (error) {
       return errorResponse(res, error.message, 400);
     }

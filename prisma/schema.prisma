@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -14,30 +8,30 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(uuid())
-  name          String
-  email         String?   @unique
-  phone         String?   @unique
-  password      String?
-  image         String?
-  isActive      Boolean   @default(true)
-  isVerified    Boolean   @default(false)
-  authMethod    String?   @default("EMAIL")
-  socialId      String?
+  id                      String         @id @default(uuid())
+  name                    String
+  email                   String?        @unique
+  password                String?
+  isActive                Boolean        @default(true)
+  isVerified              Boolean        @default(false)
+  authMethod              String?        @default("EMAIL")
+  socialId                String?
   fcmToken                String?
-  pushNotifications       Boolean   @default(true)
-  emailNotifications      Boolean   @default(true)
-  marketingCommunications Boolean   @default(false)
   lastLoginAt             DateTime?
-  createdAt               DateTime  @default(now())
-  updatedAt               DateTime  @updatedAt
-  
-  // Relations
-  otpCodes      OtpCode[]
-  refreshTokens RefreshToken[]
-  vehicles      Vehicle[]
-  carts         Cart[]
-  
+  createdAt               DateTime       @default(now())
+  updatedAt               DateTime       @updatedAt
+  phone                   String?        @unique
+  image                   String?
+  emailNotifications      Boolean        @default(true)
+  marketingCommunications Boolean        @default(false)
+  pushNotifications       Boolean        @default(true)
+  carts                   Cart[]
+  favourites              Favourite[]
+  orders                  Order[]
+  otpCodes                OtpCode[]
+  refreshTokens           RefreshToken[]
+  vehicles                Vehicle[]
+
   @@map("users")
 }
 
@@ -49,10 +43,8 @@ model OtpCode {
   expiresAt DateTime
   isUsed    Boolean  @default(false)
   createdAt DateTime @default(now())
-  
-  // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@map("otp_codes")
 }
 
@@ -63,10 +55,8 @@ model RefreshToken {
   expiresAt DateTime
   isRevoked Boolean  @default(false)
   createdAt DateTime @default(now())
-  
-  // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@map("refresh_tokens")
 }
 
@@ -75,7 +65,7 @@ model BlacklistedToken {
   token     String   @unique
   expiresAt DateTime
   createdAt DateTime @default(now())
-  
+
   @@map("blacklisted_tokens")
 }
 
@@ -88,66 +78,222 @@ model Vehicle {
   color     String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
-  // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders    Order[]
+
   @@map("vehicles")
 }
 
 model Category {
-  id    String @id @default(uuid())
-  name  String
-  
-  // Relations
-  items Item[]
-  
+  id              String           @id @default(uuid())
+  name            String
+  categoryOptions CategoryOption[]
+  items           Item[]
+  addOns          AddOn[]
+
   @@map("categories")
 }
 
 model Item {
-  id            String  @id @default(uuid())
+  id            String      @id @default(uuid())
   categoryId    String
   name          String
+  stock         Int         @default(0)
+  currentPrice  Decimal     @db.Decimal(10, 2)
   detail        String?
-  rating        Float   @default(0) @db.DoublePrecision
-  currentPrice  Decimal @db.Decimal(10, 2)
-  previousPrice Decimal? @db.Decimal(10, 2)
-  imageUrl      String?
-  stock         Int     @default(0)
-  
-  // Relations
-  category  Category   @relation(fields: [categoryId], references: [id])
-  cartItems CartItem[]
-  
+  previousPrice Decimal?    @db.Decimal(10, 2)
+  rating        Float       @default(0)
+  cartItems     CartItem[]
+  favourites    Favourite[]
+  images        ItemImage[]
+  category      Category    @relation(fields: [categoryId], references: [id])
+  orderItems    OrderItem[]
+
   @@map("items")
 }
 
+model ItemImage {
+  id        String  @id @default(uuid())
+  itemId    String
+  imageUrl  String
+  isPrimary Boolean @default(false)
+  order     Int     @default(0)
+  item      Item    @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@map("item_images")
+}
+
 model Cart {
-  id        String   @id @default(uuid())
+  id        String     @id @default(uuid())
   userId    String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
-  // Relations
-  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
   cartItems CartItem[]
-  
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@map("carts")
 }
 
 model CartItem {
-  id       String @id @default(uuid())
-  cartId   String
-  itemId   String
-  quantity Int    @default(1)
-  
-  // Relations
-  cart Cart @relation(fields: [cartId], references: [id], onDelete: Cascade)
-  item Item @relation(fields: [itemId], references: [id])
-  
+  id              String           @id @default(uuid())
+  cartId          String
+  itemId          String
+  quantity        Int              @default(1)
+  cartItemAddOns  CartItemAddOn[]
+  cartItemOptions CartItemOption[]
+  cart            Cart             @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  item            Item             @relation(fields: [itemId], references: [id])
+
   @@unique([cartId, itemId])
   @@map("cart_items")
+}
+
+model CartItemOption {
+  id               String         @id @default(uuid())
+  cartItemId       String
+  categoryOptionId String
+  cartItem         CartItem       @relation(fields: [cartItemId], references: [id], onDelete: Cascade)
+  categoryOption   CategoryOption @relation(fields: [categoryOptionId], references: [id], onDelete: Cascade)
+
+  @@unique([cartItemId, categoryOptionId])
+  @@map("cart_item_options")
+}
+
+model CartItemAddOn {
+  id         String   @id @default(uuid())
+  cartItemId String
+  addOnId    String
+  addOn      AddOn    @relation(fields: [addOnId], references: [id], onDelete: Cascade)
+  cartItem   CartItem @relation(fields: [cartItemId], references: [id], onDelete: Cascade)
+
+  @@unique([cartItemId, addOnId])
+  @@map("cart_item_add_ons")
+}
+
+model CategoryOption {
+  id              String           @id @default(uuid())
+  categoryId      String
+  optionType      String
+  name            String
+  extraPrice      Decimal          @default(0) @db.Decimal(10, 2)
+  cartItemOptions CartItemOption[]
+  category        Category         @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([categoryId, optionType, name])
+  @@map("category_options")
+}
+
+model AddOn {
+  id              String           @id @default(uuid())
+  categoryId      String
+  name            String
+  price           Decimal          @db.Decimal(10, 2)
+  isActive        Boolean          @default(true)
+  cartItemAddOns  CartItemAddOn[]
+  orderItemAddOns OrderItemAddOn[]
+  category        Category         @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@map("add_ons")
+}
+
+model Order {
+  id            String        @id @default(uuid())
+  orderNumber   String        @unique
+  userId        String
+  serviceType   ServiceType
+  pickupType    PickupType?
+  scheduledTime DateTime?
+  contactPhone  String?
+  vehicleId     String?
+  paymentMethod PaymentMethod @default(CASH)
+  cardNumber    String?
+  cardExpiry    String?
+  cardCvc       String?
+  cardHolder    String?
+  subtotal      Decimal       @db.Decimal(10, 2)
+  platformFee   Decimal       @db.Decimal(10, 2)
+  gst           Decimal       @db.Decimal(10, 2)
+  totalAmount   Decimal       @db.Decimal(10, 2)
+  status        OrderStatus   @default(PENDING)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  orderItems    OrderItem[]
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vehicle       Vehicle?      @relation(fields: [vehicleId], references: [id])
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id               String            @id @default(uuid())
+  orderId          String
+  itemId           String
+  quantity         Int               @default(1)
+  basePrice        Decimal           @db.Decimal(10, 2)
+  orderItemAddOns  OrderItemAddOn[]
+  orderItemOptions OrderItemOption[]
+  item             Item              @relation(fields: [itemId], references: [id])
+  order            Order             @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("order_items")
+}
+
+model OrderItemOption {
+  id          String    @id @default(uuid())
+  orderItemId String
+  optionType  String
+  optionValue String
+  extraPrice  Decimal   @default(0) @db.Decimal(10, 2)
+  orderItem   OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+
+  @@map("order_item_options")
+}
+
+model OrderItemAddOn {
+  id          String    @id @default(uuid())
+  orderItemId String
+  addOnId     String
+  quantity    Int       @default(1)
+  price       Decimal   @db.Decimal(10, 2)
+  addOn       AddOn     @relation(fields: [addOnId], references: [id])
+  orderItem   OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+
+  @@map("order_item_add_ons")
+}
+
+model Favourite {
+  id        String   @id @default(uuid())
+  userId    String
+  itemId    String
+  createdAt DateTime @default(now())
+  item      Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, itemId])
+  @@map("favourites")
+}
+
+
+
+enum PaymentMethod {
+  CASH
+  CARD
+  APPLE_PAY
+}
+
+enum ServiceType {
+  PICKUP
+  DRIVE_THROUGH
+}
+
+enum PickupType {
+  STANDARD
+  SCHEDULED
+}
+
+enum OrderStatus {
+  PENDING
+  COMPLETED
 }
 
 enum OtpType {

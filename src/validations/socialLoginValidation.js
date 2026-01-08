@@ -4,7 +4,7 @@ const socialLoginSchema = Joi.object({
   firstName: Joi.string().min(2).max(50).required(),
   lastName: Joi.string().min(2).max(50).required(),
   email: Joi.string().email().required(),
-  authMethod: Joi.string().valid('Google', 'Facebook').required(),
+  authMethod: Joi.string().valid('Google', 'Apple').required(),
   socialId: Joi.string().required(),
   fcmToken: Joi.string().optional()
 });

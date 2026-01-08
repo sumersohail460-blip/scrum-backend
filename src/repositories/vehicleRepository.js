@@ -7,30 +7,26 @@ class VehicleRepository {
 
   async findById(id) {
     return await prisma.vehicle.findUnique({ 
-      where: { id },
-      include: { user: true }
+      where: { id }
     });
   }
 
   async findByUserId(userId) {
     return await prisma.vehicle.findMany({ 
-      where: { userId },
-      include: { user: true }
+      where: { userId }
     });
   }
 
   async findByPlateNo(plateNo) {
     return await prisma.vehicle.findUnique({ 
-      where: { plateNo },
-      include: { user: true }
+      where: { plateNo }
     });
   }
 
   async update(id, updateData) {
     return await prisma.vehicle.update({
       where: { id },
-      data: updateData,
-      include: { user: true }
+      data: updateData
     });
   }
 
@@ -39,9 +35,7 @@ class VehicleRepository {
   }
 
   async findAll() {
-    return await prisma.vehicle.findMany({
-      include: { user: true }
-    });
+    return await prisma.vehicle.findMany();
   }
 }
 

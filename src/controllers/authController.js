@@ -19,8 +19,8 @@ class AuthController {
     try {
       const result = await authService.loginUser(req.body);
       
-      if (result.error) {
-        return errorResponse(res, result.error, result.statusCode);
+      if (result.message) {
+        return errorResponse(res, result.message, result.statusCode);
       }
       
       return successResponse(res, result, 'Login successful');
@@ -34,15 +34,21 @@ class AuthController {
       const result = await authService.forgotPassword(req.body);
       return successResponse(res, result, result.message);
     } catch (error) {
-      return exceptionResponse(res, error);
+      let statusCode = 500;
+      if (error.message.includes('User not found') || 
+          error.message.includes('verify your') ||
+          error.message.includes('inactive')) {
+        statusCode = 400;
+      }
+      return exceptionResponse(res, error, statusCode);
     }
   }
 
   async verifyOTP(req, res) {
     try {
-      const { otp } = req.body;
-      const result = await authService.verifyOTP(otp);
-      return successResponse(res, result, result.message);
+      const { otp, contact } = req.body;
+      const result = await authService.verifyOTP(otp, contact);
+      return successResponse(res, result, 'Email verified successfully');
     } catch (error) {
       const statusCode = error.message.includes('Invalid or expired OTP') ? 400 : 500;
       return exceptionResponse(res, error, statusCode);
@@ -51,9 +57,9 @@ class AuthController {
 
   async verifyForgetPasswordOTP(req, res) {
     try {
-      const { otp } = req.body;
-      const result = await authService.verifyForgetPasswordOTP(otp);
-      return successResponse(res, result, result.message);
+      const { otp, contact } = req.body;
+      const result = await authService.verifyForgetPasswordOTP(otp, contact);
+      return successResponse(res, result, 'OTP verified successfully. You can now reset your password.');
     } catch (error) {
       const statusCode = error.message.includes('Invalid or expired OTP') ? 400 : 500;
       return exceptionResponse(res, error, statusCode);
@@ -62,11 +68,18 @@ class AuthController {
 
   async resetPassword(req, res) {
     try {
-      const { userId, password } = req.body;
-      const result = await authService.resetPassword(userId, password);
-      return successResponse(res, result, result.message);
+      const { contact, password } = req.body;
+      const result = await authService.resetPassword(contact, password);
+      return successResponse(res, result.message);
     } catch (error) {
-      return exceptionResponse(res, error);
+      let statusCode = 500;
+      if (error.message.includes('User not found') || 
+          error.message.includes('verify') ||
+          error.message.includes('inactive') ||
+          error.message.includes('OTP')) {
+        statusCode = 400;
+      }
+      return exceptionResponse(res, error, statusCode);
     }
   }
 
@@ -75,7 +88,8 @@ class AuthController {
       const result = await authService.socialLogin(req.body);
       return successResponse(res, result, 'Social login successful');
     } catch (error) {
-      return exceptionResponse(res, error);
+      const statusCode = error.statusCode || 500;
+      return exceptionResponse(res, error, statusCode);
     }
   }
 
@@ -84,9 +98,15 @@ class AuthController {
       const { currentPassword, newPassword } = req.body;
       const userId = req.user.id;
       const result = await authService.updatePassword(userId, currentPassword, newPassword);
-      return successResponse(res, result, result.message);
+      return successResponse(res, result.message);
     } catch (error) {
-      return exceptionResponse(res, error);
+      let statusCode = 500;
+      if (error.message.includes('Current password is incorrect') || 
+          error.message.includes('User not found') ||
+          error.message.includes('Cannot update password')) {
+        statusCode = 400;
+      }
+      return exceptionResponse(res, error, statusCode);
     }
   }
 
@@ -95,7 +115,7 @@ class AuthController {
       const userId = req.user.id;
       const accessToken = req.token;
       const result = await authService.logout(userId, accessToken);
-      return successResponse(res, result, result.message);
+      return successResponse(res, {}, result.message);
     } catch (error) {
       return exceptionResponse(res, error);
     }
@@ -104,7 +124,7 @@ class AuthController {
   async resendOTP(req, res) {
     try {
       const result = await authService.resendOTP(req.body);
-      return successResponse(res, result, result.message);
+      return successResponse(res, {}, result.message);
     } catch (error) {
       return exceptionResponse(res, error);
     }

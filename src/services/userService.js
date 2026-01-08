@@ -18,38 +18,14 @@ class UserService {
 
     // Handle image upload
     if (imageFile) {
-      // Delete old image if exists
-      if (user.image) {
-        const oldImagePath = path.join(__dirname, '../../uploads/images', user.image);
-        if (fs.existsSync(oldImagePath)) {
-          fs.unlinkSync(oldImagePath);
-        }
-      }
-      
-      // Also delete any other images for this user (in case of multiple uploads)
-      const imagesDir = path.join(__dirname, '../../uploads/images');
-      if (fs.existsSync(imagesDir)) {
-        const files = fs.readdirSync(imagesDir);
-        files.forEach(file => {
-          if (file.startsWith(userId + '_') && file !== imageFile.filename) {
-            const filePath = path.join(imagesDir, file);
-            if (fs.existsSync(filePath)) {
-              fs.unlinkSync(filePath);
-            }
-          }
-        });
-      }
-      
-      // Set new image filename
-      updateFields.image = imageFile.filename;
+      updateFields.image = imageFile.path; // Cloudinary URL
     }
 
     // Update user in database
     const updatedUser = await userRepository.updateUser(userId, updateFields);
 
     // Generate full image URL
-    const baseUrl = process.env.BASE_URL || 'http://localhost:5000';
-    const imageUrl = updatedUser.image ? `${baseUrl}/uploads/images/${updatedUser.image}` : null;
+    const imageUrl = updatedUser.image || null;
 
     return {
       id: updatedUser.id,
@@ -68,8 +44,7 @@ class UserService {
     }
 
     // Generate full image URL
-    const baseUrl = process.env.BASE_URL || 'http://localhost:5000';
-    const imageUrl = user.image ? `${baseUrl}/uploads/images/${user.image}` : null;
+    const imageUrl = user.image || null;
 
     return {
       id: user.id,
@@ -110,7 +85,7 @@ class UserService {
       name: user.name,
       email: user.email,
       phone: user.phone,
-      image_url: user.image ? `${baseUrl}/uploads/images/${user.image}` : null,
+      image_url: user.image || null,
       isVerified: user.isVerified,
       isActive: user.isActive,
       authMethod: user.authMethod,

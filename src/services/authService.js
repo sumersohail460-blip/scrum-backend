@@ -117,7 +117,8 @@ class AuthService {
     }
 
     if (!user.isVerified) {
-      return badResponse('Please verify your email first', 400);
+      const contactMethod = user.email ? 'email' : 'phone';
+      return badResponse(`Please verify your ${contactMethod} first`, 400);
     }
 
     if (!user.isActive) {
@@ -134,6 +135,8 @@ class AuthService {
       id: user.id,
       name: user.name,
       email: user.email,
+      phone: user.phone,
+      image_url: user.image || null,
       access_token: accessToken,
       refresh_token: refreshToken
     };
@@ -151,7 +154,8 @@ class AuthService {
     }
 
     if (!user.isVerified) {
-      throw new Error('Please verify your email first before resetting password');
+      const contactMethod = user.email ? 'email' : 'phone';
+      throw new Error(`Account not verified. Please verify your ${contactMethod} first before resetting password`);
     }
 
     if (!user.isActive) {
@@ -179,19 +183,24 @@ class AuthService {
       await TwilioService.sendOTPSMS(user.phone, otp);
     }
 
-    return { message: `Password reset OTP sent to your ${user.email ? 'email' : 'phone'}` };
+    return { message: `Password reset OTP sent to your ${user.email ? 'email' : 'phone'}`, otp: otp };
   }
 
-  async verifyOTP(code) {
-    // Find user by OTP code
-    const validOTP = await otpRepository.findValidOTPByCode(code, 'EMAIL_VERIFICATION');
-    if (!validOTP) {
-      throw new Error('Invalid or expired OTP');
-    }
-
-    const user = await userRepository.findById(validOTP.userId);
+  async verifyOTP(code, contact) {
+    const { detectContactType, normalizePhone } = require('../helpers/contactHelper');
+    
+    const contactType = detectContactType(contact);
+    const normalizedContact = contactType === 'phone' ? normalizePhone(contact) : contact;
+    const user = await userRepository.findByEmailOrPhone(normalizedContact);
+    
     if (!user) {
       throw new Error('User not found');
+    }
+
+    // Find OTP for this specific user
+    const validOTP = await otpRepository.findValidOTP(user.id, code, 'EMAIL_VERIFICATION');
+    if (!validOTP) {
+      throw new Error('Invalid or expired OTP');
     }
 
     await otpRepository.markAsUsed(validOTP.id);
@@ -205,22 +214,29 @@ class AuthService {
       id: user.id,
       name: user.name,
       email: user.email,
+      phone: user.phone,
+      image_url: user.image || null,
       access_token: accessToken,
       refresh_token: refreshToken,
       message: 'Email verified successfully'
     };
   }
 
-  async verifyForgetPasswordOTP(code) {
-    // Find user by OTP code for password reset
-    const validOTP = await otpRepository.findValidOTPByCode(code, 'PASSWORD_RESET');
-    if (!validOTP) {
-      throw new Error('Invalid or expired OTP');
-    }
-
-    const user = await userRepository.findById(validOTP.userId);
+  async verifyForgetPasswordOTP(code, contact) {
+    const { detectContactType, normalizePhone } = require('../helpers/contactHelper');
+    
+    const contactType = detectContactType(contact);
+    const normalizedContact = contactType === 'phone' ? normalizePhone(contact) : contact;
+    const user = await userRepository.findByEmailOrPhone(normalizedContact);
+    
     if (!user) {
       throw new Error('User not found');
+    }
+
+    // Find OTP for this specific user
+    const validOTP = await otpRepository.findValidOTP(user.id, code, 'PASSWORD_RESET');
+    if (!validOTP) {
+      throw new Error('Invalid or expired OTP');
     }
 
     await otpRepository.markAsUsed(validOTP.id);
@@ -283,8 +299,12 @@ class AuthService {
     }
   }
 
-  async resetPassword(userId, newPassword) {
-    const user = await userRepository.findById(userId);
+  async resetPassword(contact, newPassword) {
+    const { detectContactType, normalizePhone } = require('../helpers/contactHelper');
+    
+    const contactType = detectContactType(contact);
+    const normalizedContact = contactType === 'phone' ? normalizePhone(contact) : contact;
+    const user = await userRepository.findByEmailOrPhone(normalizedContact);
     
     if (!user) {
       throw new Error('User not found');
@@ -317,7 +337,9 @@ class AuthService {
     
     if (user) {
       if (user.authMethod && user.authMethod !== authMethod) {
-        throw new Error('Email already linked with another authentication method');
+        const error = new Error('Email already linked with another authentication method');
+        error.statusCode = 400;
+        throw error;
       }
       
       // Update FCM token if provided

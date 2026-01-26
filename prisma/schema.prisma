@@ -280,6 +280,7 @@ model LoyaltyCard {
   cardNumber  String   @unique
   barcode     String   @unique
   points      Int      @default(0)
+  totalItems  Int      @default(0)
   tier        String   @default("BRONZE")
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())

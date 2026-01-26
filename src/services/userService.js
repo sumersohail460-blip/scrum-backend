@@ -38,10 +38,15 @@ class UserService {
   }
 
   async getProfile(userId) {
+    const loyaltyCardRepository = require('../repositories/loyaltyCardRepository');
+    
     const user = await userRepository.findById(userId);
     if (!user) {
       throw new Error('User not found');
     }
+
+    // Check if user has loyalty card
+    const loyaltyCard = await loyaltyCardRepository.findByUserId(userId);
 
     // Generate full image URL
     const imageUrl = user.image || null;
@@ -52,7 +57,8 @@ class UserService {
       email: user.email,
       phone: user.phone,
       image_url: imageUrl,
-      createdAt: user.createdAt
+      createdAt: user.createdAt,
+      hasLoyaltyCard: !!loyaltyCard
     };
   }
 

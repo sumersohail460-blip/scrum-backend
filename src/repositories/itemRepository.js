@@ -117,6 +117,16 @@ class ItemRepository {
   async update(id, updateData) {
     const { images, ...data } = updateData;
     
+    // Validate categoryId exists if provided
+    if (data.categoryId) {
+      const categoryExists = await prisma.category.findUnique({
+        where: { id: data.categoryId }
+      });
+      if (!categoryExists) {
+        throw new Error(`Category with id ${data.categoryId} does not exist`);
+      }
+    }
+    
     if (images) {
       // Delete existing images and create new ones
       await prisma.itemImage.deleteMany({ where: { itemId: id } });

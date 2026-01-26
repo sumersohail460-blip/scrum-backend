@@ -103,6 +103,7 @@ class AuthService {
   async loginUser(userData) {
     const { contact, contactType, password } = userData;
     const { normalizePhone } = require('../helpers/contactHelper');
+    const loyaltyCardRepository = require('../repositories/loyaltyCardRepository');
     
     const normalizedContact = contactType === 'phone' ? normalizePhone(contact) : contact;
     const user = await userRepository.findByEmailOrPhone(normalizedContact);
@@ -128,6 +129,9 @@ class AuthService {
     // Update last login
     await userRepository.updateUser(user.id, { lastLoginAt: new Date() });
 
+    // Check if user has loyalty card
+    const loyaltyCard = await loyaltyCardRepository.findByUserId(user.id);
+
     const accessToken = await generateUserJwtToken(user);
     const refreshToken = await generateUserRefreshToken(user);
 
@@ -138,7 +142,8 @@ class AuthService {
       phone: user.phone,
       image_url: user.image || null,
       access_token: accessToken,
-      refresh_token: refreshToken
+      refresh_token: refreshToken,
+      hasLoyaltyCard: !!loyaltyCard
     };
   }
 

@@ -134,7 +134,7 @@
             <p style="text-align: center; color: #666; margin-bottom: 20px;">We've sent a 6-digit code to <strong id="emailDisplay"></strong></p>
             <div class="form-group">
                 <label>Enter OTP *</label>
-                <input type="text" id="otp" placeholder="Enter 6-digit code" maxlength="6">
+                <input type="text" id="otp" placeholder="Enter 5-digit code" maxlength="5">
             </div>
             <button class="btn" onclick="verifyOTPAndCreateCard()" id="verifyBtn">
                 Verify & Create Card
@@ -169,8 +169,45 @@
     </div>
 
     <script>
-        const API_BASE = 'http://localhost:5000/api';
+        const API_BASE = 'https://regine-paraffinoid-ungeodetically.ngrok-free.dev/api';
         let userEmail = '';
+
+        // Check if URL has email parameter (for direct access)
+        const urlParams = new URLSearchParams(window.location.search);
+        const emailParam = urlParams.get('email');
+        
+        if (emailParam) {
+            // Try to get card directly for verified users
+            checkExistingCard(emailParam);
+        }
+
+        async function checkExistingCard(email) {
+            try {
+                // Try to login and get card
+                const loginResponse = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'ngrok-skip-browser-warning': 'true'
+                    },
+                    body: JSON.stringify({ contact: email, password: 'temp' })
+                });
+
+                const loginData = await loginResponse.json();
+                
+                if (loginData.status && loginData.data.user.isVerified) {
+                    // User is verified, redirect to wallet
+                    const isApple = isAppleDevice();
+                    const walletUrl = isApple 
+                        ? `${API_BASE}/loyalty-card/public/apple-wallet/${loginData.data.user.email}`
+                        : `${API_BASE}/loyalty-card/public/google-wallet/${loginData.data.user.email}`;
+                    window.location.href = walletUrl;
+                    return;
+                }
+            } catch (error) {
+                console.log('No existing card, showing form');
+            }
+        }
 
         // Detect device type
         function isAppleDevice() {
@@ -216,9 +253,34 @@
                 const loginData = await loginResponse.json();
 
                 if (loginData.status) {
-                    // User verified, create card directly
-                    showMessage('Welcome back! Creating your card...', 'success');
-                    await createCardAndRedirect(name, email, password);
+                    // User verified, get token and create/get card
+                    const token = loginData.data.accessToken;
+                    
+                    try {
+                        const cardResponse = await fetch(`${API_BASE}/loyalty-card`, {
+                            method: 'POST',
+                            headers: { 
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${token}`
+                            },
+                            body: JSON.stringify({})
+                        });
+
+                        const cardData = await cardResponse.json();
+
+                        if (cardData.statusCode === 200 || cardData.statusCode === 201) {
+                            const { walletLinks } = cardData.data;
+                            
+                            // Redirect directly to wallet
+                            const isApple = isAppleDevice();
+                            const walletLink = isApple ? walletLinks.appleWallet : walletLinks.googleWallet;
+                            
+                            window.location.href = walletLink;
+                            return;
+                        }
+                    } catch (error) {
+                        console.error('Card creation error:', error);
+                    }
                     return;
                 }
 
@@ -269,7 +331,7 @@
                 const requestBody = { name, email };
                 if (password) requestBody.password = password;
                 
-                const cardResponse = await fetch(`${API_BASE}/loyalty-card/public/create`, {
+                const cardResponse = await fetch(`${API_BASE}/loyalty-card`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(requestBody)
@@ -308,8 +370,8 @@
             const otp = document.getElementById('otp').value.trim();
             const verifyBtn = document.getElementById('verifyBtn');
 
-            if (!otp || otp.length !== 6) {
-                showOTPMessage('Please enter valid 6-digit OTP', 'error');
+            if (!otp || otp.length !== 5) {
+                showOTPMessage('Please enter valid 5-digit OTP', 'error');
                 return;
             }
 
@@ -336,7 +398,7 @@
                 // Create loyalty card
                 verifyBtn.textContent = 'Creating Card...';
                 const name = document.getElementById('name').value.trim();
-                const cardResponse = await fetch(`${API_BASE}/loyalty-card/public/create`, {
+                const cardResponse = await fetch(`${API_BASE}/loyalty-card`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ name, email: userEmail })

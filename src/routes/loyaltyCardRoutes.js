@@ -14,9 +14,13 @@ router.get('/public/debug-google-wallet/:barcode', loyaltyCardController.debugGo
 // Setup endpoint - Create Google Wallet Class (one-time setup)
 router.post('/setup/google-wallet-class', loyaltyCardController.setupGoogleWalletClass);
 
-// Authenticated APIs
-router.post('/create', authMiddleware, loyaltyCardController.createLoyaltyCard);
+// Unified endpoint - works with or without auth
+router.post('/', loyaltyCardController.createPublicLoyaltyCard);
 router.get('/', authMiddleware, loyaltyCardController.getLoyaltyCard);
+router.get('/items', authMiddleware, loyaltyCardController.getLoyaltyCardItems);
+
+// Public APIs - No authentication required
+router.post('/public/create', loyaltyCardController.createPublicLoyaltyCard);
 router.get('/wallet-options', authMiddleware, loyaltyCardController.getWalletOptions);
 router.get('/apple-wallet', authMiddleware, loyaltyCardController.addToAppleWallet);
 router.get('/google-wallet', authMiddleware, loyaltyCardController.addToGoogleWallet);

@@ -102,9 +102,15 @@ class LoyaltyCardService {
   }
 
   async createLoyaltyCard(userId) {
+    // Validate user exists
+    const user = await userRepository.findById(userId);
+    if (!user) {
+      throw new Error('User not found');
+    }
+
     const existingCard = await loyaltyCardRepository.findByUserId(userId);
     if (existingCard) {
-      throw new Error('User already has a loyalty card');
+      return existingCard; // Return existing card instead of error
     }
 
     const cardData = {
@@ -129,20 +135,22 @@ class LoyaltyCardService {
       user = await userRepository.findByEmailOrPhone(phone);
     }
 
-    // If user exists and password provided, verify password
-    if (user && password) {
-      const isPasswordValid = await bcrypt.compare(password, user.password);
-      if (!isPasswordValid) {
-        throw new Error('Invalid password');
+    // If user exists, check for existing card first
+    if (user) {
+      // If password provided, verify it
+      if (password) {
+        const isPasswordValid = await bcrypt.compare(password, user.password);
+        if (!isPasswordValid) {
+          throw new Error('Invalid password');
+        }
       }
-      // Password matched, check for existing card
+      
+      // Check for existing card
       const existingCard = await loyaltyCardRepository.findByUserId(user.id);
       if (existingCard) {
         return existingCard;
       }
-    }
-
-    if (!user) {
+    } else {
       // Create new user
       const userData = {
         name,
@@ -155,12 +163,7 @@ class LoyaltyCardService {
       user = await userRepository.createUser(userData);
     }
 
-    // Check if user already has loyalty card
-    const existingCard = await loyaltyCardRepository.findByUserId(user.id);
-    if (existingCard) {
-      return existingCard;
-    }
-
+    // Create loyalty card for user
     const cardData = {
       userId: user.id,
       cardNumber: this.generateCardNumber(),
@@ -180,6 +183,27 @@ class LoyaltyCardService {
     return card;
   }
 
+  async getLoyaltyCardByUserId(userId) {
+    return await loyaltyCardRepository.findByUserId(userId);
+  }
+
+  async getLoyaltyCardItems(userId) {
+    const loyaltyCard = await loyaltyCardRepository.findByUserId(userId);
+    if (!loyaltyCard) {
+      throw new Error('Loyalty card not found');
+    }
+
+    return {
+      loyaltyCard: {
+        id: loyaltyCard.id,
+        cardNumber: loyaltyCard.cardNumber,
+        points: loyaltyCard.points,
+        totalItems: loyaltyCard.totalItems,
+        tier: loyaltyCard.tier
+      }
+    };
+  }
+
   async getLoyaltyCardByBarcode(barcode) {
     const card = await loyaltyCardRepository.findByBarcode(barcode);
     if (!card) {
@@ -197,34 +221,29 @@ class LoyaltyCardService {
       teamIdentifier: "YOUR_TEAM_ID",
       organizationName: "Scrum Coffee",
       description: "Scrum Coffee Loyalty Card",
-      logoText: "Scrum Coffee",
+      logoText: "☕ Scrum Loyalty",
       foregroundColor: "rgb(255, 255, 255)",
-      backgroundColor: "rgb(60, 39, 25)",
+      backgroundColor: "rgb(110, 119, 52)",
       storeCard: {
         primaryFields: [
           {
-            key: "points",
-            label: "Points",
-            value: loyaltyCard.points.toString()
+            key: "totalItems",
+            label: "Coffee Collected",
+            value: `${loyaltyCard.totalItems || 0}/5`
           }
         ],
         secondaryFields: [
           {
-            key: "tier",
-            label: "Tier",
-            value: loyaltyCard.tier
-          },
-          {
-            key: "cardNumber",
-            label: "Card Number",
-            value: loyaltyCard.cardNumber
+            key: "message",
+            label: "",
+            value: "Every cup brings you closer to a free one!"
           }
         ],
         backFields: [
           {
             key: "terms",
             label: "Terms and Conditions",
-            value: "Visit scrumcoffee.com for full terms"
+            value: "Collect 5 coffees to get 1 free. Visit scrumcoffee.com for full terms"
           }
         ]
       },
@@ -246,10 +265,6 @@ class LoyaltyCardService {
   generateGoogleWalletPass(loyaltyCard) {
     const issuerId = process.env.GOOGLE_WALLET_ISSUER_ID || '3388000000023073122';
     const classId = `${issuerId}.scrum_coffee_loyalty_class`;
-
-    // Source - https://stackoverflow.com/a
-    // Posted by Jay Cee
-    // Retrieved 2026-01-22, License - CC BY-SA 4.0
     const payload = {
       iss: process.env.GOOGLE_WALLET_SERVICE_ACCOUNT_EMAIL || 'scrum-coffee@scrum-coffee.iam.gserviceaccount.com',
       aud: 'google',
@@ -262,25 +277,37 @@ class LoyaltyCardService {
         genericObjects: [{
           id: `${issuerId}.${loyaltyCard.barcode}`,
           classId: classId,
+           logo: {
+        sourceUri: {
+          uri: 'https://regine-paraffinoid-ungeodetically.ngrok-free.dev/assets/logo.png'
+        },
+        contentDescription: {
+          defaultValue: {
+            language: 'en-US',
+            value: 'Scrum Coffee'
+          }
+        }
+      },
+
           cardTitle: {
             defaultValue: {
               language: 'en-US',
-              value: 'Scrum Coffee Loyalty'
-            }
-          },
-          header: {
-            defaultValue: {
-              language: 'en-US',
-              value: loyaltyCard.user?.name || 'Member'
+              value: 'Scrum Loyalty Card'
             }
           },
           subheader: {
             defaultValue: {
               language: 'en-US',
-              value: `${loyaltyCard.points} Points`
+              value: '☕ ☕ ☕ ☕ ☕\n☕ ☕ ☕ ☕ 🎁'
             }
           },
-          hexBackgroundColor: '#3c2719',
+          header: {
+            defaultValue: {
+              language: 'en-US',
+              value: 'Collect & Earn Free Coffee'
+            }
+          },
+          hexBackgroundColor: '#6E7734',
           barcode: {
             type: 'QR_CODE',
             value: loyaltyCard.barcode

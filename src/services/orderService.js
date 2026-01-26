@@ -188,6 +188,9 @@ class OrderService {
       cartItems: orderDetails.cartItems
     });
 
+    // Add items to loyalty card
+    const totalLoyaltyItems = await this.addItemsToLoyaltyCard(userId, order.id, orderDetails.cartItems);
+
     // Clear cart after successful order creation
     const cart = await cartRepository.findUserCart(userId);
     if (cart) {
@@ -196,8 +199,35 @@ class OrderService {
 
     return {
       message: 'Order created successfully',
-      order
+      order,
+      loyaltyCardItems: totalLoyaltyItems
     };
+  }
+
+  async addItemsToLoyaltyCard(userId, orderId, cartItems) {
+    const loyaltyCardRepository = require('../repositories/loyaltyCardRepository');
+    const prisma = require('../config/dbConfig');
+    
+    // Get or create loyalty card
+    let loyaltyCard = await loyaltyCardRepository.findByUserId(userId);
+    if (!loyaltyCard) {
+      const loyaltyCardService = require('./loyaltyCardService');
+      loyaltyCard = await loyaltyCardService.createLoyaltyCard(userId);
+    }
+
+    // Calculate total items
+    const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+
+    // Update loyalty card
+    await prisma.loyaltyCard.update({
+      where: { id: loyaltyCard.id },
+      data: { 
+        points: { increment: totalItems },
+        totalItems: { increment: totalItems }
+      }
+    });
+
+    return totalItems;
   }
 
   async getUserOrders(userId, status = null) {

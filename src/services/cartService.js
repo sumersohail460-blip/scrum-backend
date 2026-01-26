@@ -84,7 +84,7 @@ class CartService {
     }, 0);
 
     const platformFee = 20;
-    const cardGst = (paymentMethod === 'CARD') ? subTotal * 0.05 : 0;
+    const cardGst = (paymentMethod === 'JazzCash' || paymentMethod === 'Cash') ? subTotal * 0.16 : (paymentMethod === 'CARD' ? subTotal * 0.05 : 0);
     const grandTotal = subTotal + platformFee + cardGst;
 
     return {

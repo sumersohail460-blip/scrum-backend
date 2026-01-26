@@ -15,12 +15,30 @@ class LoyaltyCardController {
 
   async getLoyaltyCard(req, res) {
     try {
-      const userId = req.user.id;
-      const loyaltyCard = await loyaltyCardService.getLoyaltyCard(userId);
+      console.log('=== GET Loyalty Card Request ===');
+      console.log('User ID:', req.user?.id);
       
-      return successResponse(res, loyaltyCard, 'Loyalty card retrieved successfully');
+      const userId = req.user.id;
+      let loyaltyCard = await loyaltyCardService.getLoyaltyCardByUserId(userId);
+      
+      // If card doesn't exist, create one
+      if (!loyaltyCard) {
+        console.log('No card found, creating new one...');
+        loyaltyCard = await loyaltyCardService.createLoyaltyCard(userId);
+      }
+      
+      // Generate Google Wallet token
+      const googleWalletToken = await loyaltyCardService.generateGoogleWalletPass(loyaltyCard);
+      const googleWalletUrl = `https://pay.google.com/gp/v/save/${googleWalletToken}`;
+      
+      return successResponse(res, {
+        loyaltyCard,
+        googleWalletUrl,
+        message: 'Open googleWalletUrl to add to wallet'
+      }, 'Loyalty card ready');
     } catch (error) {
-      return badResponse(res, error.message, 404);
+      console.error('Error:', error.message);
+      return badResponse(res, error.message, 400);
     }
   }
 
@@ -28,6 +46,33 @@ class LoyaltyCardController {
   async createPublicLoyaltyCard(req, res) {
     try {
       const { name, email, phone } = req.body;
+      const token = req.headers.authorization?.replace('Bearer ', '');
+      
+      // If token provided in header, verify and get user
+      if (token) {
+        try {
+          const jwt = require('jsonwebtoken');
+          const decoded = jwt.verify(token, process.env.JWT_SECRET);
+          
+          // User is verified, get or create card
+          let loyaltyCard = await loyaltyCardService.getLoyaltyCardByUserId(decoded.id);
+          
+          if (!loyaltyCard) {
+            loyaltyCard = await loyaltyCardService.createLoyaltyCard(decoded.id);
+          }
+          
+          return successResponse(res, {
+            loyaltyCard,
+            walletLinks: {
+              appleWallet: `${req.protocol}://${req.get('host')}/api/loyalty-card/public/apple-wallet/${loyaltyCard.barcode}`,
+              googleWallet: `${req.protocol}://${req.get('host')}/api/loyalty-card/public/google-wallet/${loyaltyCard.barcode}`
+            },
+            verified: true
+          }, 'Loyalty card retrieved successfully', 200);
+        } catch (error) {
+          console.error('Token verification failed:', error);
+        }
+      }
       
       if (!name || (!email && !phone)) {
         return badResponse(res, 'Name and either email or phone is required', 400);
@@ -40,7 +85,8 @@ class LoyaltyCardController {
         walletLinks: {
           appleWallet: `${req.protocol}://${req.get('host')}/api/loyalty-card/public/apple-wallet/${loyaltyCard.barcode}`,
           googleWallet: `${req.protocol}://${req.get('host')}/api/loyalty-card/public/google-wallet/${loyaltyCard.barcode}`
-        }
+        },
+        verified: false
       }, 'Loyalty card created successfully', 201);
     } catch (error) {
       return badResponse(res, error.message, 400);
@@ -71,61 +117,213 @@ class LoyaltyCardController {
       const { barcode } = req.params;
       const loyaltyCard = await loyaltyCardService.getLoyaltyCardByBarcode(barcode);
       
-      const html = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="UTF-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Add to Apple Wallet</title>
-          <style>
-            * { margin: 0; padding: 0; box-sizing: border-box; }
-            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; padding: 20px; }
-            .card { max-width: 400px; margin: 20px auto; background: #3c2719; color: white; border-radius: 15px; padding: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-            .header { text-align: center; margin-bottom: 30px; }
-            .logo { font-size: 24px; font-weight: bold; margin-bottom: 10px; }
-            .points { font-size: 48px; font-weight: bold; text-align: center; margin: 20px 0; }
-            .label { font-size: 12px; opacity: 0.8; margin-bottom: 5px; }
-            .value { font-size: 18px; margin-bottom: 20px; }
-            .barcode { background: white; padding: 20px; border-radius: 10px; text-align: center; margin: 20px 0; }
-            .barcode-text { color: #3c2719; font-family: monospace; font-size: 14px; word-break: break-all; }
-            .info { text-align: center; color: #666; font-size: 14px; margin-top: 20px; background: white; padding: 20px; border-radius: 10px; }
-            .wallet-btn { width: calc(100% - 40px); max-width: 400px; margin: 20px auto; display: block; background: black; color: white; padding: 15px; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; text-align: center; text-decoration: none; }
-          </style>
-        </head>
-        <body>
-          <div class="card">
-            <div class="header">
-              <div class="logo">☕ Scrum Coffee</div>
-              <div style="opacity: 0.8;">Loyalty Card</div>
-            </div>
+      // const html = `
+      //   <!DOCTYPE html>
+      //   <html>
+      //   <head>
+      //     <meta charset="UTF-8">
+      //     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      //     <title>Add to Apple Wallet</title>
+      //     <style>
+      //       * { margin: 0; padding: 0; box-sizing: border-box; }
+      //       body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; padding: 20px; }
+      //       .card { max-width: 400px; margin: 20px auto; background: #3c2719; color: white; border-radius: 15px; padding: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+      //       .header { text-align: center; margin-bottom: 30px; }
+      //       .logo { font-size: 24px; font-weight: bold; margin-bottom: 10px; }
+      //       .points { font-size: 48px; font-weight: bold; text-align: center; margin: 20px 0; }
+      //       .label { font-size: 12px; opacity: 0.8; margin-bottom: 5px; }
+      //       .value { font-size: 18px; margin-bottom: 20px; }
+      //       .barcode { background: white; padding: 20px; border-radius: 10px; text-align: center; margin: 20px 0; }
+      //       .barcode-text { color: #3c2719; font-family: monospace; font-size: 14px; word-break: break-all; }
+      //       .info { text-align: center; color: #666; font-size: 14px; margin-top: 20px; background: white; padding: 20px; border-radius: 10px; }
+      //       .wallet-btn { width: calc(100% - 40px); max-width: 400px; margin: 20px auto; display: block; background: black; color: white; padding: 15px; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; text-align: center; text-decoration: none; }
+      //     </style>
+      //   </head>
+      //   <body>
+      //     <div class="card">
+      //       <div class="header">
+      //         <div class="logo">☕ Scrum Coffee</div>
+      //         <div style="opacity: 0.8;">Loyalty Card</div>
+      //       </div>
             
-            <div class="points">${loyaltyCard.points}</div>
-            <div style="text-align: center; opacity: 0.8; margin-bottom: 30px;">Points</div>
+      //       <div class="points">${loyaltyCard.points}</div>
+      //       <div style="text-align: center; opacity: 0.8; margin-bottom: 30px;">Points</div>
             
-            <div class="label">Tier</div>
-            <div class="value">${loyaltyCard.tier}</div>
+      //       <div class="label">Tier</div>
+      //       <div class="value">${loyaltyCard.tier}</div>
             
-            <div class="label">Card Number</div>
-            <div class="value">${loyaltyCard.cardNumber}</div>
+      //       <div class="label">Card Number</div>
+      //       <div class="value">${loyaltyCard.cardNumber}</div>
             
-            <div class="barcode">
-              <div class="barcode-text">${loyaltyCard.barcode}</div>
-            </div>
-          </div>
+      //       <div class="barcode">
+      //         <div class="barcode-text">${loyaltyCard.barcode}</div>
+      //       </div>
+      //     </div>
           
-          <a href="${req.protocol}://${req.get('host')}/api/loyalty-card/public/apple-wallet/${barcode}/download" class="wallet-btn" style="display: inline-block;">
-            🍎 Add to Apple Wallet
-          </a>
+      //     <a href="${req.protocol}://${req.get('host')}/api/loyalty-card/public/apple-wallet/${barcode}/download" class="wallet-btn" style="display: inline-block;">
+      //       🍎 Add to Apple Wallet
+      //     </a>
           
-          <div class="info">
-            <p><strong>Your Digital Loyalty Card</strong></p>
-            <p style="margin-top: 10px;">Show this card at checkout to earn points!</p>
-          </div>
-        </body>
-        </html>
-      `;
-      
+      //     <div class="info">
+      //       <p><strong>Your Digital Loyalty Card</strong></p>
+      //       <p style="margin-top: 10px;">Show this card at checkout to earn points!</p>
+      //     </div>
+      //   </body>
+      //   </html>
+      // `;
+      const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Scrum Loyalty Card</title>
+
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 20px;
+      background: #f4f4f4;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+
+    .card {
+      max-width: 420px;
+      margin: auto;
+      background: #7a7f3a;
+      color: #fff;
+      border-radius: 20px;
+      padding: 20px;
+      position: relative;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+
+    .logo {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: #5c612b;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+
+    .title {
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .stamps {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 14px;
+      margin: 20px 0;
+    }
+
+    .stamp {
+      width: 58px;
+      height: 58px;
+      border-radius: 50%;
+      border: 2px dashed rgba(255,255,255,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      opacity: 0.4;
+    }
+
+    .stamp.active {
+      background: #fff;
+      color: #6b6f2e;
+      border: none;
+      opacity: 1;
+    }
+
+    .free {
+      grid-column: span 2;
+      background: #6b6f2e;
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .text {
+      text-align: center;
+      font-size: 14px;
+      margin: 10px 0 15px;
+      opacity: 0.9;
+    }
+
+    .qr {
+      background: #fff;
+      padding: 10px;
+      border-radius: 12px;
+      width: fit-content;
+      margin: auto;
+    }
+
+    .wallet-btn {
+      margin-top: 20px;
+      display: block;
+      background: #000;
+      color: #fff;
+      text-align: center;
+      padding: 14px;
+      border-radius: 12px;
+      text-decoration: none;
+      font-weight: 600;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="card">
+    <div class="header">
+      <div class="logo">☕</div>
+      <div class="title">Scrum Loyalty Card</div>
+    </div>
+
+    <div class="stamps">
+      ${
+        Array.from({ length: 9 }).map((_, i) =>
+          `<div class="stamp ${i < loyaltyCard.points ? 'active' : ''}">☕</div>`
+        ).join('')
+      }
+      <div class="free">
+        ⭐<br/>Free Coffee
+      </div>
+    </div>
+
+    <div class="text">
+      Every cup brings you closer to a free one-!
+    </div>
+
+    <div class="qr">
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${loyaltyCard.barcode}" />
+    </div>
+  </div>
+
+  <a class="wallet-btn"
+     href="${req.protocol}://${req.get('host')}/api/loyalty-card/public/apple-wallet/${barcode}/download">
+    🍎 Add to Apple Wallet
+  </a>
+
+</body>
+</html>
+`;
+
       res.setHeader('Content-Type', 'text/html');
       return res.send(html);
     } catch (error) {
@@ -342,6 +540,17 @@ class LoyaltyCardController {
       return successResponse(res, walletOptions, 'Wallet options retrieved successfully');
     } catch (error) {
       return badResponse(res, error.message, 400);
+    }
+  }
+
+  async getLoyaltyCardItems(req, res) {
+    try {
+      const userId = req.user.id;
+      const data = await loyaltyCardService.getLoyaltyCardItems(userId);
+      
+      return successResponse(res, data, 'Loyalty card items retrieved successfully');
+    } catch (error) {
+      return badResponse(res, error.message, 404);
     }
   }
 }

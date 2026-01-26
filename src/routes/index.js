@@ -9,6 +9,8 @@ const addOnRoutes = require('./addOnRoutes');
 const favouriteRoutes = require('./favouriteRoutes');
 const cartRoutes = require('./cartRoutes');
 const orderRoutes = require('./orderRoutes');
+const payementRoutes= require('./paymentRoutes')
+const loyaltyCardRoutes = require('./loyaltyCardRoutes');
 const { rateLimiter } = require('../middlewares/rateLimiterMiddleware');
 const { errorResponse } = require('../utils/apiResponseUtil');
 const router = express.Router();
@@ -26,7 +28,8 @@ router.use('/add-ons', addOnRoutes);
 router.use('/favourites', favouriteRoutes);
 router.use('/cart', cartRoutes);
 router.use('/orders', orderRoutes);
-
+router.use('/payement', payementRoutes);
+router.use('/loyalty-card', loyaltyCardRoutes);
 // Health check endpoint
 router.get('/health', async (req, res) => {
   const prisma = require('../config/dbConfig');

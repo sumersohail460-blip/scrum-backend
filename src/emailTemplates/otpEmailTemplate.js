@@ -29,7 +29,7 @@ module.exports = (otp, userName = "User") => `
 
             <h2 class="heading-tag pt-24">OTP Verification</h2>
             <p class="p-tag pt-24">Dear <span class="green-text">${userName}</span>,</p>
-            <p class="p-tag pt-8">We received a request to verify your account. Please use the following 6-digit One-Time Password (OTP):</p>
+            <p class="p-tag pt-8">We received a request to verify your account. Please use the following 5-digit One-Time Password (OTP):</p>
 
             <div class="text-center pt-24">
                 <span class="otp-number">${otp}</span>

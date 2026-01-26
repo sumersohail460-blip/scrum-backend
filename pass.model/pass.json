@@ -1,0 +1,10 @@
+{
+  "formatVersion": 1,
+  "passTypeIdentifier": "pass.com.scrumcoffee.loyalty",
+  "teamIdentifier": "29SHB6K5KV",
+  "organizationName": "Scrum Coffee",
+  "description": "Scrum Coffee Loyalty Card",
+  "logoText": "Scrum Coffee",
+  "foregroundColor": "rgb(255, 255, 255)",
+  "backgroundColor": "rgb(60, 39, 25)"
+}

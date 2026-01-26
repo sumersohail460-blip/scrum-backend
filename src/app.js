@@ -10,6 +10,14 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
+// Serve static files from public directory
+app.use(express.static(path.join(__dirname, '../public')));
+
+// Serve loyalty-card.html under /api path
+app.get('/api/loyalty-card', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/loyalty-card.html'));
+});
+
 app.use('/api', routes);
 
 // Global error handler

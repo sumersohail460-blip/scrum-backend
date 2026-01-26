@@ -1,4 +1,5 @@
 const addOnRepository = require('../repositories/addOnRepository');
+const categoryRepository = require('../repositories/categoryRepository');
 
 class AddOnService {
   async getAllAddOns() {
@@ -22,6 +23,12 @@ class AddOnService {
   }
 
   async createAddOn(data) {
+    if (data.categoryId) {
+      const category = await categoryRepository.findById(data.categoryId);
+      if (!category) {
+        throw new Error('Category not found');
+      }
+    }
     return await addOnRepository.create(data);
   }
 
@@ -29,6 +36,12 @@ class AddOnService {
     const addOn = await addOnRepository.findById(id);
     if (!addOn) {
       throw new Error('Add-on not found');
+    }
+    if (data.categoryId) {
+      const category = await categoryRepository.findById(data.categoryId);
+      if (!category) {
+        throw new Error('Category not found');
+      }
     }
     return await addOnRepository.update(id, data);
   }

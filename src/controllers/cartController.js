@@ -27,7 +27,8 @@ class CartController {
   async getCart(req, res) {
     try {
       const userId = req.user.id;
-      const cart = await cartService.getCart(userId);
+      const { paymentMethod } = req.query;
+      const cart = await cartService.getCart(userId, paymentMethod);
       return successResponse(res, cart, 'Cart retrieved successfully');
     } catch (error) {
       return errorResponse(res, error.message, 400);

@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>☕ Scrum Coffee - Loyalty Card</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #3c2719, #5d4037);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .form-section { padding: 30px; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+        }
+        .btn {
+            width: 100%;
+            background: linear-gradient(135deg, #3c2719, #5d4037);
+            color: white;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .btn:disabled { opacity: 0.6; }
+        .loyalty-card {
+            background: linear-gradient(135deg, #3c2719, #5d4037);
+            color: white;
+            padding: 30px;
+            margin: 20px;
+            border-radius: 15px;
+            text-align: center;
+        }
+        .card-info {
+            display: flex;
+            justify-content: space-between;
+            margin: 20px 0;
+        }
+        .barcode-section {
+            background: white;
+            color: black;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .barcode {
+            font-family: monospace;
+            font-size: 16px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        .wallet-btn {
+            width: 100%;
+            padding: 15px;
+            margin: 10px 20px;
+            background: #4285f4;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .message {
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px;
+            text-align: center;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .card-section { display: none; }
+        .otp-section { display: none; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>☕ Scrum Coffee</h1>
+            <p>Get your digital loyalty card!</p>
+        </div>
+
+        <div id="formSection" class="form-section">
+            <div class="form-group">
+                <label>Your Name *</label>
+                <input type="text" id="name" placeholder="Enter your name">
+            </div>
+            <div class="form-group">
+                <label>Email *</label>
+                <input type="email" id="email" placeholder="Enter your email">
+            </div>
+            <div class="form-group">
+                <label>Password *</label>
+                <input type="password" id="password" placeholder="Enter password">
+            </div>
+            <button class="btn" onclick="sendOTP()" id="signupBtn">
+                Sign Up & Get Card
+            </button>
+            <div id="message"></div>
+        </div>
+
+        <div id="otpSection" class="form-section otp-section">
+            <h3 style="text-align: center; margin-bottom: 20px;">📧 Verify Your Email</h3>
+            <p style="text-align: center; color: #666; margin-bottom: 20px;">We've sent a 6-digit code to <strong id="emailDisplay"></strong></p>
+            <div class="form-group">
+                <label>Enter OTP *</label>
+                <input type="text" id="otp" placeholder="Enter 6-digit code" maxlength="6">
+            </div>
+            <button class="btn" onclick="verifyOTPAndCreateCard()" id="verifyBtn">
+                Verify & Create Card
+            </button>
+            <div id="otpMessage"></div>
+        </div>
+
+        <div id="cardSection" class="card-section">
+            <div class="loyalty-card">
+                <h2>🏆 Your Loyalty Card</h2>
+                <div class="card-info">
+                    <div><strong>Points:</strong> <span id="points">0</span></div>
+                    <div><strong>Tier:</strong> <span id="tier">BRONZE</span></div>
+                </div>
+                <div class="card-info">
+                    <div><strong>Card:</strong> <span id="cardNumber">****</span></div>
+                </div>
+                <div class="barcode-section">
+                    <div>📱 Barcode</div>
+                    <div class="barcode" id="barcode">****</div>
+                </div>
+            </div>
+            <button class="wallet-btn" onclick="openGoogleWallet()">
+                📱 Open Wallet
+            </button>
+            <div style="padding: 20px; text-align: center; color: #666;">
+                <p><strong>How to use:</strong></p>
+                <p>Show the barcode above at checkout to earn points!</p>
+                <p style="margin-top: 10px; font-size: 14px;">Automatically detects your device and opens the appropriate wallet (Apple Wallet for iOS/Mac, Google Wallet for others).</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:5000/api';
+        let userEmail = '';
+
+        // Detect device type
+        function isAppleDevice() {
+            return /iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent);
+        }
+
+        // Step 1: Send OTP
+        async function sendOTP() {
+            const name = document.getElementById('name').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value.trim();
+            const signupBtn = document.getElementById('signupBtn');
+
+            console.log('=== Signup Attempt ===');
+            console.log('Name:', name);
+            console.log('Email:', email);
+            console.log('Password length:', password.length);
+
+            if (!name || !email || !password) {
+                showMessage('Please fill all fields', 'error');
+                return;
+            }
+
+            if (password.length < 5) {
+                showMessage('Password must be at least 5 characters', 'error');
+                return;
+            }
+
+            signupBtn.disabled = true;
+            signupBtn.textContent = 'Processing...';
+
+            try {
+                // First try login
+                const loginResponse = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'ngrok-skip-browser-warning': 'true'
+                    },
+                    body: JSON.stringify({ contact: email, password })
+                });
+
+                const loginData = await loginResponse.json();
+
+                if (loginData.status) {
+                    // User verified, create card directly
+                    showMessage('Welcome back! Creating your card...', 'success');
+                    await createCardAndRedirect(name, email, password);
+                    return;
+                }
+
+                // If login failed, check if user exists but not verified
+                if (loginData.message && loginData.message.includes('verify')) {
+                    showMessage('Please verify your email first', 'error');
+                    signupBtn.disabled = false;
+                    signupBtn.textContent = 'Sign Up & Get Card';
+                    return;
+                }
+
+                // Try signup
+                signupBtn.textContent = 'Sending OTP...';
+                console.log('Sending request to:', `${API_BASE}/auth/signup`);
+                const response = await fetch(`${API_BASE}/auth/signup`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'ngrok-skip-browser-warning': 'true'
+                    },
+                    body: JSON.stringify({ name, contact: email, password })
+                });
+
+                console.log('Response status:', response.status);
+                const data = await response.json();
+                console.log('Response data:', data);
+
+                if (data.status) {
+                    userEmail = email;
+                    document.getElementById('emailDisplay').textContent = email;
+                    document.getElementById('formSection').style.display = 'none';
+                    document.getElementById('otpSection').style.display = 'block';
+                    showOTPMessage('OTP sent successfully! Check your email.', 'success');
+                } else {
+                    showMessage(data.message || 'Failed to send OTP', 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showMessage('Network error: ' + error.message, 'error');
+            } finally {
+                signupBtn.disabled = false;
+                signupBtn.textContent = 'Sign Up & Get Card';
+            }
+        }
+
+        async function createCardAndRedirect(name, email, password = null) {
+            try {
+                const requestBody = { name, email };
+                if (password) requestBody.password = password;
+                
+                const cardResponse = await fetch(`${API_BASE}/loyalty-card/public/create`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestBody)
+                });
+
+                const cardData = await cardResponse.json();
+
+                if (cardData.statusCode === 201) {
+                    const { loyaltyCard, walletLinks } = cardData.data;
+                    
+                    document.getElementById('points').textContent = loyaltyCard.points;
+                    document.getElementById('tier').textContent = loyaltyCard.tier;
+                    document.getElementById('cardNumber').textContent = loyaltyCard.cardNumber;
+                    document.getElementById('barcode').textContent = loyaltyCard.barcode;
+                    
+                    window.googleWalletLink = walletLinks.googleWallet;
+                    window.appleWalletLink = walletLinks.appleWallet;
+                    
+                    document.getElementById('formSection').style.display = 'none';
+                    document.getElementById('cardSection').style.display = 'block';
+                    
+                    const isApple = isAppleDevice();
+                    const walletLink = isApple ? window.appleWalletLink : window.googleWalletLink;
+                    
+                    setTimeout(() => {
+                        window.location.href = walletLink;
+                    }, 1000);
+                }
+            } catch (error) {
+                showMessage('Error: ' + error.message, 'error');
+            }
+        }
+
+        // Step 2: Verify OTP and Create Card
+        async function verifyOTPAndCreateCard() {
+            const otp = document.getElementById('otp').value.trim();
+            const verifyBtn = document.getElementById('verifyBtn');
+
+            if (!otp || otp.length !== 6) {
+                showOTPMessage('Please enter valid 6-digit OTP', 'error');
+                return;
+            }
+
+            verifyBtn.disabled = true;
+            verifyBtn.textContent = 'Verifying...';
+
+            try {
+                // Verify OTP
+                const verifyResponse = await fetch(`${API_BASE}/auth/verify-otp`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contact: userEmail, otp })
+                });
+
+                const verifyData = await verifyResponse.json();
+
+                if (!verifyData.status) {
+                    showOTPMessage(verifyData.message || 'Invalid OTP', 'error');
+                    verifyBtn.disabled = false;
+                    verifyBtn.textContent = 'Verify & Create Card';
+                    return;
+                }
+
+                // Create loyalty card
+                verifyBtn.textContent = 'Creating Card...';
+                const name = document.getElementById('name').value.trim();
+                const cardResponse = await fetch(`${API_BASE}/loyalty-card/public/create`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, email: userEmail })
+                });
+
+                const cardData = await cardResponse.json();
+
+                if (cardData.statusCode === 201) {
+                    const { loyaltyCard, walletLinks } = cardData.data;
+                    
+                    // Update UI
+                    document.getElementById('points').textContent = loyaltyCard.points;
+                    document.getElementById('tier').textContent = loyaltyCard.tier;
+                    document.getElementById('cardNumber').textContent = loyaltyCard.cardNumber;
+                    document.getElementById('barcode').textContent = loyaltyCard.barcode;
+                    
+                    window.googleWalletLink = walletLinks.googleWallet;
+                    window.appleWalletLink = walletLinks.appleWallet;
+                    
+                    // Show card
+                    document.getElementById('otpSection').style.display = 'none';
+                    document.getElementById('cardSection').style.display = 'block';
+                    
+                    // Auto-open appropriate wallet
+                    const isApple = isAppleDevice();
+                    const walletLink = isApple ? window.appleWalletLink : window.googleWalletLink;
+                    
+                    setTimeout(() => {
+                        window.location.href = walletLink;
+                    }, 1000);
+                } else {
+                    showOTPMessage(cardData.message || 'Failed to create card', 'error');
+                }
+            } catch (error) {
+                showOTPMessage('Network error: ' + error.message, 'error');
+            } finally {
+                verifyBtn.disabled = false;
+                verifyBtn.textContent = 'Verify & Create Card';
+            }
+        }
+
+        function openGoogleWallet() {
+            const isApple = isAppleDevice();
+            const walletLink = isApple ? window.appleWalletLink : window.googleWalletLink;
+            const walletName = isApple ? 'Apple Wallet' : 'Google Wallet';
+            
+            if (!walletLink) {
+                showMessage('No wallet link found', 'error');
+                return;
+            }
+
+            window.location.href = walletLink;
+        }
+
+        function showMessage(text, type) {
+            const msg = document.getElementById('message');
+            msg.innerHTML = `<div class="message ${type}">${text}</div>`;
+            setTimeout(() => msg.innerHTML = '', 5000);
+        }
+
+        function showOTPMessage(text, type) {
+            const msg = document.getElementById('otpMessage');
+            msg.innerHTML = `<div class="message ${type}">${text}</div>`;
+            setTimeout(() => msg.innerHTML = '', 5000);
+        }
+    </script>
+</body>
+</html>

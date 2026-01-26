@@ -19,22 +19,20 @@ class CartService {
     }
 
     // Check if item already exists in cart
-    // Ensure cartItems is always an array (should be included from createCart/findUserCart)
     const existingItem = (cart.cartItems || []).find(cartItem => cartItem.itemId === itemId);
     
     if (existingItem) {
-      // Replace quantity if item exists 
-      const newQuantity = quantity;
-      
       // Check stock availability
-      if (item.stock < newQuantity) {
+      if (item.stock < quantity) {
         throw new Error(`Cannot set quantity to ${quantity}. Available stock: ${item.stock}`);
       }
       
-      const updatedItem = await cartRepository.updateCartItemQuantity(cart.id, itemId, newQuantity);
+      // Remove existing item and add new one with updated options/addons
+      await cartRepository.removeItemFromCart(cart.id, itemId);
+      const cartItem = await cartRepository.addItemToCart(cart.id, itemId, quantity, selectedOptions, selectedAddOns);
       return {
-        message: 'Item quantity updated in cart.',
-        cartItem: updatedItem
+        message: 'Item updated in cart.',
+        cartItem
       };
     } else {
       // Check stock availability
@@ -51,37 +49,51 @@ class CartService {
     }
   }
 
-  async getCart(userId) {
+  async getCart(userId, paymentMethod = null) {
     const cart = await cartRepository.findUserCart(userId);
     if (!cart) {
       return {
         cartItems: [],
         totalItems: 0,
-        totalAmount: 0
+        subTotal: 0,
+        platformFee: 20,
+        cardGst: 0,
+        grandTotal: 20
       };
     }
 
     const totalItems = cart.cartItems.reduce((sum, item) => sum + item.quantity, 0);
-    const totalAmount = cart.cartItems.reduce((sum, cartItem) => {
+    const subTotal = cart.cartItems.reduce((sum, cartItem) => {
       let itemTotal = parseFloat(cartItem.item.currentPrice) * cartItem.quantity;
       
       // Add option prices
-      cartItem.cartItemOptions.forEach(option => {
-        itemTotal += parseFloat(option.categoryOption.extraPrice) * cartItem.quantity;
-      });
+      if (cartItem.cartItemOptions && cartItem.cartItemOptions.length > 0) {
+        cartItem.cartItemOptions.forEach(option => {
+          itemTotal += parseFloat(option.categoryOption.extraPrice) * cartItem.quantity;
+        });
+      }
       
       // Add add-on prices
-      cartItem.cartItemAddOns.forEach(addOn => {
-        itemTotal += parseFloat(addOn.addOn.price) * cartItem.quantity;
-      });
+      if (cartItem.cartItemAddOns && cartItem.cartItemAddOns.length > 0) {
+        cartItem.cartItemAddOns.forEach(addOn => {
+          itemTotal += parseFloat(addOn.addOn.price) * cartItem.quantity;
+        });
+      }
       
       return sum + itemTotal;
     }, 0);
 
+    const platformFee = 20;
+    const cardGst = (paymentMethod === 'CARD') ? subTotal * 0.05 : 0;
+    const grandTotal = subTotal + platformFee + cardGst;
+
     return {
       cartItems: cart.cartItems,
       totalItems,
-      totalAmount: totalAmount.toFixed(2)
+      subTotal: parseFloat(subTotal.toFixed(2)),
+      platformFee,
+      cardGst: parseFloat(cardGst.toFixed(2)),
+      grandTotal: parseFloat(grandTotal.toFixed(2))
     };
   }
 

@@ -6,5 +6,9 @@
   "description": "Scrum Coffee Loyalty Card",
   "logoText": "Scrum Coffee",
   "foregroundColor": "rgb(255, 255, 255)",
-  "backgroundColor": "rgb(60, 39, 25)"
+  "backgroundColor": "rgb(60, 39, 25)",
+  "icon": "icon.png",
+  "icon@2x": "icon@2x.png",
+  "logo": "logo.png",
+  "logo@2x": "logo@2x.png"
 }

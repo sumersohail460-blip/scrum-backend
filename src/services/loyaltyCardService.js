@@ -265,11 +265,26 @@ class LoyaltyCardService {
   generateGoogleWalletPass(loyaltyCard) {
     const issuerId = process.env.GOOGLE_WALLET_ISSUER_ID || '3388000000023073122';
     const classId = `${issuerId}.scrum_coffee_loyalty_class`;
+    console.log('text',loyaltyCard)
+    const totalItems = loyaltyCard.totalItems || 0;
+    const icons = [];
+    for (let i = 1; i <= 10; i++) {
+      if (i === 10) {
+        icons.push('🆓');
+      } else if (i <= totalItems) {
+        icons.push('☕ ');
+      } else {
+        icons.push('🚫');
+      }
+    }
+    const row1 = icons.slice(0, 5).join('  ');
+    const row2 = icons.slice(5, 10).join('  ');
+    
     const payload = {
       iss: process.env.GOOGLE_WALLET_SERVICE_ACCOUNT_EMAIL || 'scrum-coffee@scrum-coffee.iam.gserviceaccount.com',
       aud: 'google',
       typ: 'savetowallet',
-      origins: ['localhost'],
+      origins: [],
       payload: {
         genericClasses: [{
           id: classId
@@ -295,16 +310,16 @@ class LoyaltyCardService {
               value: 'Scrum Loyalty Card'
             }
           },
-          subheader: {
-            defaultValue: {
-              language: 'en-US',
-              value: '☕ ☕ ☕ ☕ ☕\n☕ ☕ ☕ ☕ 🎁'
-            }
-          },
           header: {
             defaultValue: {
               language: 'en-US',
-              value: 'Collect & Earn Free Coffee'
+              value: `${row1}\n${row2}`
+            }
+          },
+          subheader: {
+            defaultValue: {
+              language: 'en-US',
+              value: 'Every cup brings you closer to free!'
             }
           },
           hexBackgroundColor: '#6E7734',
@@ -340,6 +355,83 @@ class LoyaltyCardService {
     console.log('[JWT] Payload being encoded:', JSON.stringify(payload, null, 2));
     return base64Token;
   }
+
+//   generateGoogleWalletPass(loyaltyCard){
+//   const issuerId = process.env.GOOGLE_WALLET_ISSUER_ID || '3388000000023073122';
+//   const classId = `${issuerId}.scrum_coffee_loyalty_class`;
+
+//   const totalItems = loyaltyCard.totalItems || 0;
+//   const imageModulesData = [];
+
+//    const icons = [];
+//     for (let i = 1; i <= 10; i++) {
+//       if (i === 10) {
+//         icons.push('🎁');
+//       } else if (i <= totalItems) {
+//         icons.push('☕');
+//       } else {
+//         icons.push('⛾');
+//       }
+//     }
+//     const row1 = icons.slice(0, 5).join(' ');
+//     const row2 = icons.slice(5, 10).join(' ');
+    
+
+   
+
+//   const payload = {
+//     iss: process.env.GOOGLE_WALLET_SERVICE_ACCOUNT_EMAIL,
+//     aud: 'google',
+//     typ: 'savetowallet',
+//     origins: ['localhost'],
+//     payload: {
+//       genericClasses: [{ id: classId }],
+//       genericObjects: [{
+//         id: `${issuerId}.${loyaltyCard.barcode}`,
+//         classId: classId,
+//         logo: {
+//           sourceUri: { uri: 'https://regine-paraffinoid-ungeodetically.ngrok-free.dev/assets/logo.png' },
+//           contentDescription: { defaultValue: { language: 'en-US', value: 'Scrum Coffee' } }
+//         },
+//         cardTitle: {
+//           defaultValue: { language: 'en-US', value: 'Scrum Loyalty Card' }
+//         },
+//         header: {
+//             defaultValue: {
+//               language: 'en-US',
+//               value: `${row1}\n${row2}`
+//             }
+//           },
+//         // header: { defaultValue: { language: 'en-US', value: 'Collect your stamps!' } },
+//         textModulesData: [{
+//           header: '',
+//           body: 'Every cup brings you closer to free!',
+//           id: 'message'
+//         }],
+//         hexBackgroundColor: '#6E7734',
+//         barcode: {
+//           type: 'QR_CODE',
+//           value: loyaltyCard.barcode
+//         },
+//         // imageModulesData // <-- this replaces your emoji header
+//       }]
+//     }
+//   };
+
+//   // JWT signing logic
+//   try {
+//     const privateKey = process.env.GOOGLE_WALLET_PRIVATE_KEY;
+//     if (privateKey) {
+//       const formattedKey = privateKey.replace(/\\n/g, '\n');
+//       const token = jwt.sign(payload, formattedKey, { algorithm: 'RS256' });
+//       return token;
+//     }
+//   } catch (error) {
+//     console.error('[JWT ERROR]', error);
+//   }
+
+//   return Buffer.from(JSON.stringify(payload)).toString('base64');
+// };
 
 
   async getWalletPassData(userId, walletType) {

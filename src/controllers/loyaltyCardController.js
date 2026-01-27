@@ -235,7 +235,7 @@ class LoyaltyCardController {
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 22px;
+      font-size: 15px;
       opacity: 0.4;
     }
 
@@ -247,14 +247,13 @@ class LoyaltyCardController {
     }
 
     .free {
-      grid-column: span 2;
       background: #6b6f2e;
       border-radius: 12px;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      font-size: 14px;
+      font-size: 10px;
       font-weight: 600;
     }
 
@@ -297,12 +296,23 @@ class LoyaltyCardController {
 
     <div class="stamps">
       ${
-        Array.from({ length: 9 }).map((_, i) =>
-          `<div class="stamp ${i < loyaltyCard.points ? 'active' : ''}">☕</div>`
+        Array.from({ length: 5 }).map((_, i) =>
+          `<div class="stamp ${i < loyaltyCard.totalItems ? 'active' : ''}">
+            <img src="/assets/${i < loyaltyCard.totalItems ? 'filled' : 'empty'}.png" style="width: 40px; height: 40px;" />
+          </div>`
+        ).join('')
+      }
+    </div>
+    <div class="stamps">
+      ${
+        Array.from({ length: 4 }).map((_, i) =>
+          `<div class="stamp ${(i + 5) < loyaltyCard.totalItems ? 'active' : ''}">
+            <img src="/assets/${(i + 5) < loyaltyCard.totalItems ? 'filled' : 'empty'}.png" style="width: 40px; height: 40px;" />
+          </div>`
         ).join('')
       }
       <div class="free">
-        ⭐<br/>Free Coffee
+        <img src="/assets/gift.png" style="width: 30px; height: 30px;" />
       </div>
     </div>
 
@@ -336,20 +346,39 @@ class LoyaltyCardController {
   async downloadApplePass(req, res) {
     try {
       const { barcode } = req.params;
+      console.log('[Apple Pass] Downloading for barcode:', barcode);
+      
       const { PKPass } = require('passkit-generator');
       const fs = require('fs');
       const path = require('path');
       
       const loyaltyCard = await loyaltyCardService.getLoyaltyCardByBarcode(barcode);
+      console.log('[Apple Pass] Loyalty card found:', loyaltyCard.cardNumber);
       
       const modelPath = path.resolve('./pass.model');
+      console.log('[Apple Pass] Model path:', modelPath);
+      
+      const certPath = path.resolve(process.env.APPLE_CERTIFICATE_PATH);
+      const keyPath = path.resolve(process.env.APPLE_KEY_PATH);
+      const wwdrPath = path.resolve(process.env.APPLE_WWDR_CERTIFICATE_PATH);
+      
+      console.log('[Apple Pass] Certificate path:', certPath, '- Exists:', fs.existsSync(certPath));
+      console.log('[Apple Pass] Key path:', keyPath, '- Exists:', fs.existsSync(keyPath));
+      console.log('[Apple Pass] WWDR path:', wwdrPath, '- Exists:', fs.existsSync(wwdrPath));
+      
+      console.log('Icon exists:', fs.existsSync(path.join(modelPath, 'icon.png')));
+      console.log('Icon@2x exists:', fs.existsSync(path.join(modelPath, 'icon@2x.png')));
+      console.log('Icon@3x exists:', fs.existsSync(path.join(modelPath, 'icon@3x.png')));
+      console.log('Logo exists:', fs.existsSync(path.join(modelPath, 'logo.png')));
+      console.log('Logo@2x exists:', fs.existsSync(path.join(modelPath, 'logo@2x.png')));
+      console.log('pass.json exists:', fs.existsSync(path.join(modelPath, 'pass.json')));
       
       const pass = new PKPass(
         { model: modelPath },
         {
-          signerCert: fs.readFileSync(path.resolve(process.env.APPLE_CERTIFICATE_PATH)),
-          signerKey: fs.readFileSync(path.resolve(process.env.APPLE_KEY_PATH)),
-          wwdr: fs.readFileSync(path.resolve(process.env.APPLE_WWDR_CERTIFICATE_PATH))
+          signerCert: fs.readFileSync(certPath),
+          signerKey: fs.readFileSync(keyPath),
+          wwdr: fs.readFileSync(wwdrPath)
         },
         {
           serialNumber: loyaltyCard.cardNumber,
@@ -389,14 +418,18 @@ class LoyaltyCardController {
       }];
 
       const buffer = pass.getAsBuffer();
+      console.log('[Apple Pass] Buffer generated, size:', buffer.length);
       
       res.set({
-        'Content-Type': 'application/vnd.apple.pkpass'
+        'Content-Type': 'application/vnd.apple.pkpass',
+        'Content-Disposition': `attachment; filename="scrum-loyalty-${loyaltyCard.cardNumber}.pkpass"`,
+        'Content-Length': buffer.length
       });
       
       return res.send(buffer);
     } catch (error) {
       console.error('[Apple Wallet Download Error]:', error);
+      console.error('[Apple Wallet Error Stack]:', error.stack);
       return badResponse(res, error.message, 400);
     }
   }

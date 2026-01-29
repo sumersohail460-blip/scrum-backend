@@ -326,7 +326,7 @@ class LoyaltyCardController {
   </div>
 
   <a class="wallet-btn"
-     href="${req.protocol}://${req.get('host')}/api/loyalty-card/public/apple-wallet/${barcode}/download">
+     href="https://${req.get('host')}/api/loyalty-card/public/apple-wallet/${barcode}/download">
     🍎 Add to Apple Wallet
   </a>
 
@@ -366,6 +366,9 @@ class LoyaltyCardController {
       console.log('[Apple Pass] Key path:', keyPath, '- Exists:', fs.existsSync(keyPath));
       console.log('[Apple Pass] WWDR path:', wwdrPath, '- Exists:', fs.existsSync(wwdrPath));
       
+      console.log('[Apple Pass] Pass Type ID:', process.env.APPLE_PASS_TYPE_ID);
+      console.log('[Apple Pass] Team ID:', process.env.APPLE_TEAM_ID);
+      
       console.log('Icon exists:', fs.existsSync(path.join(modelPath, 'icon.png')));
       console.log('Icon@2x exists:', fs.existsSync(path.join(modelPath, 'icon@2x.png')));
       console.log('Icon@3x exists:', fs.existsSync(path.join(modelPath, 'icon@3x.png')));
@@ -382,7 +385,7 @@ class LoyaltyCardController {
         },
         {
           serialNumber: loyaltyCard.cardNumber,
-          description: 'Scrum Coffee Loyalty Card',
+          description: 'Scrum Coffee',
           organizationName: 'Scrum Coffee',
           passTypeIdentifier: process.env.APPLE_PASS_TYPE_ID,
           teamIdentifier: process.env.APPLE_TEAM_ID,
@@ -420,17 +423,30 @@ class LoyaltyCardController {
       const buffer = pass.getAsBuffer();
       console.log('[Apple Pass] Buffer generated, size:', buffer.length);
       
-      res.set({
+      // Save locally for testing
+      const testPath = path.resolve(`./test-pass-${loyaltyCard.cardNumber}.pkpass`);
+      fs.writeFileSync(testPath, buffer);
+      console.log('[Apple Pass] Test file saved at:', testPath);
+      
+      console.log('[Apple Pass] Sending response...');
+      
+      const downloadUrl = `${req.protocol}://${req.get('host')}/api/loyalty-card/public/apple-wallet/${barcode}/download`;
+      console.log('[Apple Pass] Download URL for iPhone:', downloadUrl);
+      
+      res.writeHead(200, {
         'Content-Type': 'application/vnd.apple.pkpass',
-        'Content-Disposition': `attachment; filename="scrum-loyalty-${loyaltyCard.cardNumber}.pkpass"`,
+        'Content-Disposition': `attachment; filename="scrum-loyalty.pkpass"`,
         'Content-Length': buffer.length
       });
-      
-      return res.send(buffer);
+
+      res.end(buffer);
+      console.log('[Apple Pass] Response sent successfully');
     } catch (error) {
-      console.error('[Apple Wallet Download Error]:', error);
+      console.error('[Apple Wallet Download Error]:', error.message);
       console.error('[Apple Wallet Error Stack]:', error.stack);
-      return badResponse(res, error.message, 400);
+      if (!res.headersSent) {
+        return badResponse(res, error.message, 400);
+      }
     }
   }
 

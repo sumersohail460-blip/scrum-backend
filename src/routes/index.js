@@ -30,6 +30,12 @@ router.use('/cart', cartRoutes);
 router.use('/orders', orderRoutes);
 router.use('/payement', payementRoutes);
 router.use('/loyalty-card', loyaltyCardRoutes);
+
+// Server status endpoint
+router.get('/', (req, res) => {
+  res.send('Server is running');
+});
+
 // Health check endpoint
 router.get('/health', async (req, res) => {
   const prisma = require('../config/dbConfig');

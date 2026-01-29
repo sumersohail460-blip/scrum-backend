@@ -15,12 +15,9 @@ app.use(express.static(path.join(__dirname, '../public')));
 
 // API routes should come first
 app.use('/api', routes);
-
-// Serve loyalty-card.html for browser access (after API routes)
-app.get('/loyalty-card', (req, res) => {
-  res.sendFile(path.join(__dirname, '../public/loyalty-card.html'));
+app.get('/', (req, res) => {
+  res.send('Server is running');
 });
-
 // Global error handler
 app.use((err, req, res, next) => {
   console.error(err.stack);

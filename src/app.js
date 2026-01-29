@@ -11,7 +11,9 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 app.use('/api', routes);
-
+app.get('/', (req, res) => {
+  res.send('Server is running');
+});
 // Global error handler
 app.use((err, req, res, next) => {
   console.error(err.stack);

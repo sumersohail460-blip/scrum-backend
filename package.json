@@ -21,7 +21,7 @@
     "prisma": "^6.19.0"
   },
   "dependencies": {
-    "@prisma/client": "^6.19.0",
+    "@prisma/client": "^6.19.2",
     "bcrypt": "^5.1.1",
     "cloudinary": "^1.41.3",
     "express-rate-limit": "^7.1.5",

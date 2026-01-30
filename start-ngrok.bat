@@ -1,0 +1,3 @@
+@echo off
+echo Starting ngrok tunnel on port 5000...
+ngrok http 5000

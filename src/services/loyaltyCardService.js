@@ -216,14 +216,14 @@ class LoyaltyCardService {
     // Apple Wallet pass structure
     return {
       formatVersion: 1,
-      passTypeIdentifier: "pass.com.scrumcoffee.loyalty",
+      passTypeIdentifier: "pass.com.scrumcoffee.loyaltycard",
       serialNumber: loyaltyCard.cardNumber,
-      teamIdentifier: "YOUR_TEAM_ID",
+      teamIdentifier: "29SHB6K5KV",
       organizationName: "Scrum Coffee",
       description: "Scrum Coffee Loyalty Card",
-      logoText: "☕ Scrum Loyalty",
+      logoText: "Scrum Coffee",
       foregroundColor: "rgb(255, 255, 255)",
-      backgroundColor: "rgb(110, 119, 52)",
+      backgroundColor: "rgb(60, 39, 25)",
       storeCard: {
         primaryFields: [
           {

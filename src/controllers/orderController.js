@@ -73,7 +73,8 @@ class OrderController {
     try {
       const { orderId } = req.params;
       const userId = req.user.id;
-      const result = await orderService.completeOrder(orderId, userId);
+      const bodyData = req.body; // Body data bhi available hai
+      const result = await orderService.completeOrder(orderId, userId, bodyData);
       return successResponse(res, result, 'Order completed successfully');
     } catch (error) {
       return errorResponse(res, error.message, 400);

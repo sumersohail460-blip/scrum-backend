@@ -188,9 +188,6 @@ class OrderService {
       cartItems: orderDetails.cartItems
     });
 
-    // Add items to loyalty card
-    const totalLoyaltyItems = await this.addItemsToLoyaltyCard(userId, order.id, orderDetails.cartItems);
-
     // Clear cart after successful order creation
     const cart = await cartRepository.findUserCart(userId);
     if (cart) {
@@ -199,12 +196,11 @@ class OrderService {
 
     return {
       message: 'Order created successfully',
-      order,
-      loyaltyCardItems: totalLoyaltyItems
+      order
     };
   }
 
-  async addItemsToLoyaltyCard(userId, orderId, cartItems) {
+  async addItemsToLoyaltyCard(userId, orderId, orderItems) {
     const loyaltyCardRepository = require('../repositories/loyaltyCardRepository');
     const prisma = require('../config/dbConfig');
     
@@ -215,8 +211,8 @@ class OrderService {
       loyaltyCard = await loyaltyCardService.createLoyaltyCard(userId);
     }
 
-    // Calculate total items
-    const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+    // Calculate total items from orderItems
+    const totalItems = orderItems.reduce((sum, item) => sum + item.quantity, 0);
 
     // Update loyalty card
     await prisma.loyaltyCard.update({
@@ -289,6 +285,9 @@ class OrderService {
     
     await orderRepository.updateOrderStatus(orderId, 'COMPLETED');
     
+    // Add items to loyalty card
+    const totalLoyaltyItems = await this.addItemsToLoyaltyCard(userId, order.id, order.orderItems);
+    
     // Trigger auto-favourite checks
     const autoFavouriteService = require('./autoFavouriteService');
     for (const orderItem of order.orderItems) {
@@ -296,7 +295,8 @@ class OrderService {
     }
     
     return {
-      message: 'Order completed successfully'
+      message: 'Order completed successfully',
+      loyaltyCardItems: totalLoyaltyItems
     };
   }
 }

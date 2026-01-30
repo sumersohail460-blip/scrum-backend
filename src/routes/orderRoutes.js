@@ -11,7 +11,7 @@ router.get('/details', orderController.getOrderDetails);
 router.post('/', orderController.createOrder);
 router.get('/', orderController.getUserOrders);
 router.get('/:orderId', orderController.getOrderById);
-router.patch('/:orderId/complete', orderController.completeOrder);
+router.post('/:orderId/complete', orderController.completeOrder);
 router.delete('/:orderId', orderController.deleteOrder);
 
 module.exports = router;

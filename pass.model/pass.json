@@ -11,5 +11,8 @@
   "icon@2x": "icon@2x.png",
   "icon@3x": "icon@3x.png",
   "logo": "logo.png",
-  "logo@2x": "logo@2x.png"
+  "logo@2x": "logo@2x.png",
+  "strip": "artwork.png",
+  "strip@2x": "artwork@2x.png",
+  "strip@3x": "artwork@3x.png"
 }

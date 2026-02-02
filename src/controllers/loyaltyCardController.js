@@ -117,6 +117,13 @@ class LoyaltyCardController {
       const { barcode } = req.params;
       const loyaltyCard = await loyaltyCardService.getLoyaltyCardByBarcode(barcode);
       
+      const downloadUrl = `${req.protocol}://${req.get('host')}/api/loyalty-card/public/apple-wallet/${barcode}/download`;
+      console.log('===========================================');
+      console.log('[Apple Wallet] Download URL:', downloadUrl);
+      console.log('[Apple Wallet] Barcode:', barcode);
+      console.log('[Apple Wallet] Card Number:', loyaltyCard.cardNumber);
+      console.log('===========================================');
+      
       // const html = `
       //   <!DOCTYPE html>
       //   <html>
@@ -326,9 +333,18 @@ class LoyaltyCardController {
   </div>
 
   <a class="wallet-btn"
-     href="https://${req.get('host')}/api/loyalty-card/public/apple-wallet/${barcode}/download">
+     href="https://${req.get('host')}/api/loyalty-card/public/apple-wallet/${barcode}/download"
+     onclick="console.log('Download URL:', this.href); return true;">
     🍎 Add to Apple Wallet
   </a>
+
+  <script>
+    console.log('===========================================');
+    console.log('[Apple Wallet Page] Download URL: https://${req.get('host')}/api/loyalty-card/public/apple-wallet/${barcode}/download');
+    console.log('[Apple Wallet Page] Barcode: ${barcode}');
+    console.log('[Apple Wallet Page] Card Number: ${loyaltyCard.cardNumber}');
+    console.log('===========================================');
+  </script>
 
 </body>
 </html>
@@ -381,11 +397,12 @@ class LoyaltyCardController {
         {
           signerCert: fs.readFileSync(certPath),
           signerKey: fs.readFileSync(keyPath),
-          wwdr: fs.readFileSync(wwdrPath)
+          wwdr: fs.readFileSync(wwdrPath),
+          signerKeyPassphrase: process.env.APPLE_CERTIFICATE_PASSWORD || '1234'
         },
         {
           serialNumber: loyaltyCard.cardNumber,
-          description: 'Scrum Coffee',
+          description: 'Scrum Coffee Loyalty Card',
           organizationName: 'Scrum Coffee',
           passTypeIdentifier: process.env.APPLE_PASS_TYPE_ID,
           teamIdentifier: process.env.APPLE_TEAM_ID,
@@ -394,6 +411,21 @@ class LoyaltyCardController {
           logoText: 'Scrum Coffee'
         }
       );
+
+      // Add images manually
+      pass.addBuffer('icon.png', fs.readFileSync(path.join(modelPath, 'icon.png')));
+      pass.addBuffer('icon@2x.png', fs.readFileSync(path.join(modelPath, 'icon@2x.png')));
+      pass.addBuffer('icon@3x.png', fs.readFileSync(path.join(modelPath, 'icon@3x.png')));
+      pass.addBuffer('logo.png', fs.readFileSync(path.join(modelPath, 'logo.png')));
+      pass.addBuffer('logo@2x.png', fs.readFileSync(path.join(modelPath, 'logo@2x.png')));
+      if (fs.existsSync(path.join(modelPath, 'logo@3x.png'))) {
+        pass.addBuffer('logo@3x.png', fs.readFileSync(path.join(modelPath, 'logo@3x.png')));
+      }
+      if (fs.existsSync(path.join(modelPath, 'artwork.png'))) {
+        pass.addBuffer('strip.png', fs.readFileSync(path.join(modelPath, 'artwork.png')));
+        pass.addBuffer('strip@2x.png', fs.readFileSync(path.join(modelPath, 'artwork@2x.png')));
+        pass.addBuffer('strip@3x.png', fs.readFileSync(path.join(modelPath, 'artwork@3x.png')));
+      }
 
       pass.type = 'storeCard';
       pass.headerFields.push({

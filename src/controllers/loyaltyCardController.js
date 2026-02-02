@@ -31,10 +31,14 @@ class LoyaltyCardController {
       const googleWalletToken = await loyaltyCardService.generateGoogleWalletPass(loyaltyCard);
       const googleWalletUrl = `https://pay.google.com/gp/v/save/${googleWalletToken}`;
       
+      // Generate Apple Wallet URL
+      const appleWalletUrl = `${req.protocol}://${req.get('host')}/api/loyalty-card/public/apple-wallet/${loyaltyCard.barcode}/download`;
+      
       return successResponse(res, {
         loyaltyCard,
         googleWalletUrl,
-        message: 'Open googleWalletUrl to add to wallet'
+        appleWalletUrl,
+        message: 'Open googleWalletUrl or appleWalletUrl to add to wallet'
       }, 'Loyalty card ready');
     } catch (error) {
       console.error('Error:', error.message);
@@ -124,60 +128,6 @@ class LoyaltyCardController {
       console.log('[Apple Wallet] Card Number:', loyaltyCard.cardNumber);
       console.log('===========================================');
       
-      // const html = `
-      //   <!DOCTYPE html>
-      //   <html>
-      //   <head>
-      //     <meta charset="UTF-8">
-      //     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      //     <title>Add to Apple Wallet</title>
-      //     <style>
-      //       * { margin: 0; padding: 0; box-sizing: border-box; }
-      //       body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; padding: 20px; }
-      //       .card { max-width: 400px; margin: 20px auto; background: #3c2719; color: white; border-radius: 15px; padding: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-      //       .header { text-align: center; margin-bottom: 30px; }
-      //       .logo { font-size: 24px; font-weight: bold; margin-bottom: 10px; }
-      //       .points { font-size: 48px; font-weight: bold; text-align: center; margin: 20px 0; }
-      //       .label { font-size: 12px; opacity: 0.8; margin-bottom: 5px; }
-      //       .value { font-size: 18px; margin-bottom: 20px; }
-      //       .barcode { background: white; padding: 20px; border-radius: 10px; text-align: center; margin: 20px 0; }
-      //       .barcode-text { color: #3c2719; font-family: monospace; font-size: 14px; word-break: break-all; }
-      //       .info { text-align: center; color: #666; font-size: 14px; margin-top: 20px; background: white; padding: 20px; border-radius: 10px; }
-      //       .wallet-btn { width: calc(100% - 40px); max-width: 400px; margin: 20px auto; display: block; background: black; color: white; padding: 15px; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; text-align: center; text-decoration: none; }
-      //     </style>
-      //   </head>
-      //   <body>
-      //     <div class="card">
-      //       <div class="header">
-      //         <div class="logo">☕ Scrum Coffee</div>
-      //         <div style="opacity: 0.8;">Loyalty Card</div>
-      //       </div>
-            
-      //       <div class="points">${loyaltyCard.points}</div>
-      //       <div style="text-align: center; opacity: 0.8; margin-bottom: 30px;">Points</div>
-            
-      //       <div class="label">Tier</div>
-      //       <div class="value">${loyaltyCard.tier}</div>
-            
-      //       <div class="label">Card Number</div>
-      //       <div class="value">${loyaltyCard.cardNumber}</div>
-            
-      //       <div class="barcode">
-      //         <div class="barcode-text">${loyaltyCard.barcode}</div>
-      //       </div>
-      //     </div>
-          
-      //     <a href="${req.protocol}://${req.get('host')}/api/loyalty-card/public/apple-wallet/${barcode}/download" class="wallet-btn" style="display: inline-block;">
-      //       🍎 Add to Apple Wallet
-      //     </a>
-          
-      //     <div class="info">
-      //       <p><strong>Your Digital Loyalty Card</strong></p>
-      //       <p style="margin-top: 10px;">Show this card at checkout to earn points!</p>
-      //     </div>
-      //   </body>
-      //   </html>
-      // `;
       const html = `<!DOCTYPE html>
 <html>
 <head>
@@ -186,97 +136,124 @@ class LoyaltyCardController {
   <title>Scrum Loyalty Card</title>
 
   <style>
-    * { box-sizing: border-box; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      margin: 0;
       padding: 20px;
-      background: #f4f4f4;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      min-height: 100vh;
     }
 
     .card {
-      max-width: 420px;
-      margin: auto;
-      background: #7a7f3a;
+      max-width: 400px;
+      margin: 20px auto;
+      background: #3c2719;
       color: #fff;
       border-radius: 20px;
-      padding: 20px;
-      position: relative;
+      padding: 25px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
     }
 
     .header {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 15px;
+      text-align: center;
+      margin-bottom: 20px;
+      padding-bottom: 15px;
+      border-bottom: 1px solid rgba(255,255,255,0.2);
     }
 
     .logo {
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      background: #5c612b;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 18px;
+      font-size: 48px;
+      margin-bottom: 8px;
     }
 
     .title {
-      font-size: 18px;
+      font-size: 20px;
       font-weight: 600;
+      letter-spacing: 0.5px;
     }
 
     .stamps {
       display: grid;
       grid-template-columns: repeat(5, 1fr);
-      gap: 14px;
+      gap: 10px;
       margin: 20px 0;
     }
 
     .stamp {
-      width: 58px;
-      height: 58px;
+      width: 100%;
+      aspect-ratio: 1;
       border-radius: 50%;
-      border: 2px dashed rgba(255,255,255,0.5);
+      border: 2px dashed rgba(255,255,255,0.3);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 15px;
-      opacity: 0.4;
+      font-size: 24px;
+      background: rgba(255,255,255,0.05);
     }
 
     .stamp.active {
       background: #fff;
-      color: #6b6f2e;
       border: none;
-      opacity: 1;
+      animation: pop 0.3s ease;
+    }
+
+    @keyframes pop {
+      0% { transform: scale(0.8); }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); }
     }
 
     .free {
-      background: #6b6f2e;
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
       border-radius: 12px;
       display: flex;
-      flex-direction: column;
       align-items: center;
       justify-content: center;
-      font-size: 10px;
+      font-size: 28px;
+      box-shadow: 0 4px 15px rgba(245,87,108,0.4);
+    }
+
+    .info-section {
+      background: rgba(255,255,255,0.1);
+      border-radius: 12px;
+      padding: 15px;
+      margin: 20px 0;
+    }
+
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+    }
+
+    .info-label {
+      font-size: 12px;
+      opacity: 0.7;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .info-value {
+      font-size: 16px;
       font-weight: 600;
     }
 
     .text {
       text-align: center;
       font-size: 14px;
-      margin: 10px 0 15px;
+      margin: 15px 0;
       opacity: 0.9;
+      font-style: italic;
     }
 
     .qr {
       background: #fff;
-      padding: 10px;
-      border-radius: 12px;
+      padding: 15px;
+      border-radius: 15px;
       width: fit-content;
-      margin: auto;
+      margin: 20px auto;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
     }
 
     .wallet-btn {
@@ -285,10 +262,17 @@ class LoyaltyCardController {
       background: #000;
       color: #fff;
       text-align: center;
-      padding: 14px;
+      padding: 16px;
       border-radius: 12px;
       text-decoration: none;
       font-weight: 600;
+      font-size: 16px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+      transition: transform 0.2s;
+    }
+
+    .wallet-btn:active {
+      transform: scale(0.98);
     }
   </style>
 </head>
@@ -305,7 +289,7 @@ class LoyaltyCardController {
       ${
         Array.from({ length: 5 }).map((_, i) =>
           `<div class="stamp ${i < loyaltyCard.totalItems ? 'active' : ''}">
-            <img src="/assets/${i < loyaltyCard.totalItems ? 'filled' : 'empty'}.png" style="width: 40px; height: 40px;" />
+            ${i < loyaltyCard.totalItems ? '☕' : ''}
           </div>`
         ).join('')
       }
@@ -314,37 +298,41 @@ class LoyaltyCardController {
       ${
         Array.from({ length: 4 }).map((_, i) =>
           `<div class="stamp ${(i + 5) < loyaltyCard.totalItems ? 'active' : ''}">
-            <img src="/assets/${(i + 5) < loyaltyCard.totalItems ? 'filled' : 'empty'}.png" style="width: 40px; height: 40px;" />
+            ${(i + 5) < loyaltyCard.totalItems ? '☕' : ''}
           </div>`
         ).join('')
       }
-      <div class="free">
-        <img src="/assets/gift.png" style="width: 30px; height: 30px;" />
-      </div>
+      <div class="free">🎁</div>
     </div>
 
     <div class="text">
-      Every cup brings you closer to a free one-!
+      Every cup brings you closer to a free one!
+    </div>
+
+    <div class="info-section">
+      <div class="info-row">
+        <span class="info-label">Points</span>
+        <span class="info-value">${loyaltyCard.points}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Tier</span>
+        <span class="info-value">${loyaltyCard.tier}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Card Number</span>
+        <span class="info-value">${loyaltyCard.cardNumber}</span>
+      </div>
     </div>
 
     <div class="qr">
-      <img src="https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${loyaltyCard.barcode}" />
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${loyaltyCard.barcode}" />
     </div>
   </div>
 
   <a class="wallet-btn"
-     href="https://${req.get('host')}/api/loyalty-card/public/apple-wallet/${barcode}/download"
-     onclick="console.log('Download URL:', this.href); return true;">
+     href="https://${req.get('host')}/api/loyalty-card/public/apple-wallet/${barcode}/download">
     🍎 Add to Apple Wallet
   </a>
-
-  <script>
-    console.log('===========================================');
-    console.log('[Apple Wallet Page] Download URL: https://${req.get('host')}/api/loyalty-card/public/apple-wallet/${barcode}/download');
-    console.log('[Apple Wallet Page] Barcode: ${barcode}');
-    console.log('[Apple Wallet Page] Card Number: ${loyaltyCard.cardNumber}');
-    console.log('===========================================');
-  </script>
 
 </body>
 </html>
@@ -401,12 +389,12 @@ class LoyaltyCardController {
           signerKeyPassphrase: process.env.APPLE_CERTIFICATE_PASSWORD || '1234'
         },
         {
-          serialNumber: loyaltyCard.cardNumber,
+          serialNumber: `${loyaltyCard.cardNumber}-${Date.now()}`,
           description: 'Scrum Coffee Loyalty Card',
           organizationName: 'Scrum Coffee',
           passTypeIdentifier: process.env.APPLE_PASS_TYPE_ID,
           teamIdentifier: process.env.APPLE_TEAM_ID,
-          backgroundColor: 'rgb(60, 39, 25)',
+          backgroundColor: 'rgb(122, 127, 58)',
           foregroundColor: 'rgb(255, 255, 255)',
           logoText: 'Scrum Coffee'
         }
@@ -421,35 +409,63 @@ class LoyaltyCardController {
       if (fs.existsSync(path.join(modelPath, 'logo@3x.png'))) {
         pass.addBuffer('logo@3x.png', fs.readFileSync(path.join(modelPath, 'logo@3x.png')));
       }
-      if (fs.existsSync(path.join(modelPath, 'artwork.png'))) {
-        pass.addBuffer('strip.png', fs.readFileSync(path.join(modelPath, 'artwork.png')));
-        pass.addBuffer('strip@2x.png', fs.readFileSync(path.join(modelPath, 'artwork@2x.png')));
-        pass.addBuffer('strip@3x.png', fs.readFileSync(path.join(modelPath, 'artwork@3x.png')));
-      }
 
       pass.type = 'storeCard';
-      pass.headerFields.push({
+      
+      // Create stamps visual exactly like Google Wallet
+      const totalStamps = loyaltyCard.totalItems || 0;
+      const icons = [];
+      for (let i = 1; i <= 10; i++) {
+        if (i === 10) {
+          icons.push('🎁');
+        } else if (i <= totalStamps) {
+          icons.push('☕');
+        } else {
+          icons.push('🚫');
+        }
+      }
+      const row1 = icons.slice(0, 5).join('  ');
+      const row2 = icons.slice(5, 10).join('  ');
+      
+      pass.primaryFields.push({
+        key: 'row1',
+        value: row1
+      });
+
+      pass.secondaryFields.push({
+        key: 'row2',
+        value: row2
+      });
+      
+      pass.backFields.push({
+        key: 'message',
+        label: '',
+        value: 'Every cup brings you closer to free!'
+      });
+      
+      pass.backFields.push({
+        key: 'cardNumber',
+        label: 'Card Number',
+        value: loyaltyCard.cardNumber
+      });
+      
+      pass.backFields.push({  
         key: 'points',
         label: 'Points',
         value: loyaltyCard.points.toString()
       });
       
-      pass.secondaryFields.push({
+      pass.backFields.push({
         key: 'tier',
         label: 'Tier',
         value: loyaltyCard.tier
-      });
-      
-      pass.secondaryFields.push({
-        key: 'cardNumber',
-        label: 'Card Number',
-        value: loyaltyCard.cardNumber
       });
 
       pass.barcodes = [{
         format: 'PKBarcodeFormatQR',
         message: loyaltyCard.barcode,
-        messageEncoding: 'iso-8859-1'
+        messageEncoding: 'iso-8859-1',
+        altText: loyaltyCard.cardNumber
       }];
 
       const buffer = pass.getAsBuffer();

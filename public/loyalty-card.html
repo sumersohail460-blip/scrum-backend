@@ -141,31 +141,6 @@
             </button>
             <div id="otpMessage"></div>
         </div>
-
-        <div id="cardSection" class="card-section">
-            <div class="loyalty-card">
-                <h2>🏆 Your Loyalty Card</h2>
-                <div class="card-info">
-                    <div><strong>Points:</strong> <span id="points">0</span></div>
-                    <div><strong>Tier:</strong> <span id="tier">BRONZE</span></div>
-                </div>
-                <div class="card-info">
-                    <div><strong>Card:</strong> <span id="cardNumber">****</span></div>
-                </div>
-                <div class="barcode-section">
-                    <div>📱 Barcode</div>
-                    <div class="barcode" id="barcode">****</div>
-                </div>
-            </div>
-            <button class="wallet-btn" onclick="openGoogleWallet()">
-                📱 Open Wallet
-            </button>
-            <div style="padding: 20px; text-align: center; color: #666;">
-                <p><strong>How to use:</strong></p>
-                <p>Show the barcode above at checkout to earn points!</p>
-                <p style="margin-top: 10px; font-size: 14px;">Automatically detects your device and opens the appropriate wallet (Apple Wallet for iOS/Mac, Google Wallet for others).</p>
-            </div>
-        </div>
     </div>
 
     <script>
@@ -407,28 +382,13 @@
                 const cardData = await cardResponse.json();
 
                 if (cardData.statusCode === 201) {
-                    const { loyaltyCard, walletLinks } = cardData.data;
+                    const { walletLinks } = cardData.data;
                     
-                    // Update UI
-                    document.getElementById('points').textContent = loyaltyCard.points;
-                    document.getElementById('tier').textContent = loyaltyCard.tier;
-                    document.getElementById('cardNumber').textContent = loyaltyCard.cardNumber;
-                    document.getElementById('barcode').textContent = loyaltyCard.barcode;
-                    
-                    window.googleWalletLink = walletLinks.googleWallet;
-                    window.appleWalletLink = walletLinks.appleWallet;
-                    
-                    // Show card
-                    document.getElementById('otpSection').style.display = 'none';
-                    document.getElementById('cardSection').style.display = 'block';
-                    
-                    // Auto-open appropriate wallet
+                    // Direct redirect to wallet
                     const isApple = isAppleDevice();
-                    const walletLink = isApple ? window.appleWalletLink : window.googleWalletLink;
+                    const walletLink = isApple ? walletLinks.appleWallet : walletLinks.googleWallet;
                     
-                    setTimeout(() => {
-                        window.location.href = walletLink;
-                    }, 1000);
+                    window.location.href = walletLink;
                 } else {
                     showOTPMessage(cardData.message || 'Failed to create card', 'error');
                 }

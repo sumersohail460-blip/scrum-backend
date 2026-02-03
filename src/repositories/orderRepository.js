@@ -1,6 +1,5 @@
 const prisma = require('../config/dbConfig');
 const OrderNumberGenerator = require('../utils/orderNumberGenerator');
-const autoFavouriteService = require('../services/autoFavouriteService');
 
 class OrderRepository {
   async createOrder(orderData) {
@@ -196,6 +195,7 @@ class OrderRepository {
         );
         
         // Check for auto-favourites for each completed order
+        const autoFavouriteService = require('../services/autoFavouriteService');
         for (const order of expiredOrders) {
           const fullOrder = await this.findOrderById(order.id);
           if (fullOrder && fullOrder.orderItems) {

@@ -1,0 +1,19 @@
+{
+  "formatVersion": 1,
+  "storeCard": {
+    "primaryFields": [],
+    "secondaryFields": [],
+    "auxiliaryFields": [],
+    "backFields": []
+  },
+  "barcodes": [{
+    "format": "PKBarcodeFormatQR",
+    "messageEncoding": "iso-8859-1",
+    "message": ""
+  }],
+  "barcode": {
+    "format": "PKBarcodeFormatQR",
+    "messageEncoding": "iso-8859-1",
+    "message": ""
+  }
+}

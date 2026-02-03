@@ -281,6 +281,7 @@ model LoyaltyCard {
   barcode     String   @unique
   points      Int      @default(0)
   totalItems  Int      @default(0)
+  freeItems   Int      @default(0)
   tier        String   @default("BRONZE")
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
@@ -295,6 +296,7 @@ model LoyaltyCard {
 enum PaymentMethod {
   CASH
   CARD
+  JAZZCASH
   APPLE_PAY
 }
 

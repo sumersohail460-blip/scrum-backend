@@ -27,7 +27,7 @@ class OrderService {
       cartItem.cartItemOptions.forEach(option => {
         itemTotal += parseFloat(option.categoryOption.extraPrice) * cartItem.quantity;
       });
-      
+       
       // Add add-on prices
       cartItem.cartItemAddOns.forEach(addOn => {
         itemTotal += parseFloat(addOn.addOn.price) * cartItem.quantity;
@@ -72,6 +72,11 @@ class OrderService {
   async createOrder(userId, orderData) {
     const { serviceType, pickupType, scheduledTime, contact, paymentMethod, vehicleId, cardDetails } = orderData;
 
+    // Check loyalty card for free items
+    const loyaltyCardRepository = require('../repositories/loyaltyCardRepository');
+    const loyaltyCard = await loyaltyCardRepository.findByUserId(userId);
+    const isFreeOrder = loyaltyCard && loyaltyCard.totalItems >= 9;
+
     // Validate service type
     if (!['PICKUP', 'DRIVE_THROUGH'].includes(serviceType)) {
       throw new Error('Invalid service type');
@@ -97,7 +102,7 @@ class OrderService {
     }
 
     // Validate payment method
-    const validPaymentMethods = ['CASH', 'CARD', 'APPLE_PAY'];
+    const validPaymentMethods = ['CASH', 'CARD', 'JAZZCASH', 'APPLE_PAY'];
     const finalPaymentMethod = paymentMethod && validPaymentMethods.includes(paymentMethod) ? paymentMethod : 'CASH';
 
     // Validate card details if payment method is CARD
@@ -171,6 +176,21 @@ class OrderService {
     // Get order details from cart
     const orderDetails = await this.getFullOrderDetails(userId);
     
+    // If free order, set amounts to 0 and payment method to FREE
+    let finalSubtotal = orderDetails.subtotal;
+    let finalPlatformFee = orderDetails.platformFee;
+    let finalGst = orderDetails.gst;
+    let finalTotalAmount = orderDetails.totalAmount;
+    let finalPayment = finalPaymentMethod;
+    
+    if (isFreeOrder) {
+      finalSubtotal = 0;
+      finalPlatformFee = 0;
+      finalGst = 0;
+      finalTotalAmount = 0;
+      finalPayment = 'CASH'; // Set to CASH but amount is 0
+    }
+    
     // Create order
     const order = await orderRepository.createOrder({
       userId,
@@ -179,12 +199,12 @@ class OrderService {
       scheduledTime: finalScheduledTime,
       contactPhone,
       vehicleId: serviceType === 'DRIVE_THROUGH' ? vehicleId : null,
-      paymentMethod: finalPaymentMethod,
+      paymentMethod: finalPayment,
       cardInfo,
-      subtotal: orderDetails.subtotal,
-      platformFee: orderDetails.platformFee,
-      gst: orderDetails.gst,
-      totalAmount: orderDetails.totalAmount,
+      subtotal: finalSubtotal,
+      platformFee: finalPlatformFee,
+      gst: finalGst,
+      totalAmount: finalTotalAmount,
       cartItems: orderDetails.cartItems
     });
 
@@ -211,17 +231,41 @@ class OrderService {
       loyaltyCard = await loyaltyCardService.createLoyaltyCard(userId);
     }
 
+    console.log('[Loyalty Card] Before update:', {
+      totalItems: loyaltyCard.totalItems,
+      freeItems: loyaltyCard.freeItems,
+      points: loyaltyCard.points
+    });
+
     // Calculate total items from orderItems
     const totalItems = orderItems.reduce((sum, item) => sum + item.quantity, 0);
+    console.log('[Loyalty Card] Items to add:', totalItems);
 
-    // Update loyalty card
-    await prisma.loyaltyCard.update({
-      where: { id: loyaltyCard.id },
-      data: { 
-        points: { increment: totalItems },
-        totalItems: { increment: totalItems }
-      }
-    });
+    // Check if user had 9+ items before this order for free order
+    const hadFreeOrder = loyaltyCard.totalItems >= 9;
+    console.log('[Loyalty Card] Is free order:', hadFreeOrder);
+    
+    if (hadFreeOrder) {
+      // Reset totalItems to 0 and increment freeItems
+      const updated = await prisma.loyaltyCard.update({
+        where: { id: loyaltyCard.id },
+        data: { 
+          totalItems: 0,
+          freeItems: { increment: 1 }
+        }
+      });
+      console.log('[Loyalty Card] After free order update:', updated);
+    } else {
+      // Normal order - increment points and totalItems
+      const updated = await prisma.loyaltyCard.update({
+        where: { id: loyaltyCard.id },
+        data: { 
+          points: { increment: totalItems },
+          totalItems: { increment: totalItems }
+        }
+      });
+      console.log('[Loyalty Card] After normal update:', updated);
+    }
 
     return totalItems;
   }
@@ -283,10 +327,28 @@ class OrderService {
       throw new Error('Order is already completed');
     }
     
+    // Get loyalty card before completing order
+    const loyaltyCardRepository = require('../repositories/loyaltyCardRepository');
+    const loyaltyCardBefore = await loyaltyCardRepository.findByUserId(userId);
+    console.log('[Complete Order] Loyalty card BEFORE completing order:', {
+      totalItems: loyaltyCardBefore?.totalItems || 0,
+      freeItems: loyaltyCardBefore?.freeItems || 0,
+      points: loyaltyCardBefore?.points || 0
+    });
+    
     await orderRepository.updateOrderStatus(orderId, 'COMPLETED');
     
     // Add items to loyalty card
     const totalLoyaltyItems = await this.addItemsToLoyaltyCard(userId, order.id, order.orderItems);
+    
+    // Get loyalty card after completing order
+    const loyaltyCardAfter = await loyaltyCardRepository.findByUserId(userId);
+    console.log('[Complete Order] Loyalty card AFTER completing order:', {
+      totalItems: loyaltyCardAfter?.totalItems || 0,
+      freeItems: loyaltyCardAfter?.freeItems || 0,
+      points: loyaltyCardAfter?.points || 0
+    });
+    console.log('[Complete Order] loyaltyCardItems returned:', totalLoyaltyItems);
     
     // Trigger auto-favourite checks
     const autoFavouriteService = require('./autoFavouriteService');
